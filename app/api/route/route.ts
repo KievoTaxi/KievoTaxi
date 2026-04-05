@@ -1,29 +1,47 @@
 export async function POST(req: Request) {
-  const { from, to } = await req.json();
+  try {
+    const { from, to } = await req.json();
 
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!from || !to) {
+      return Response.json({ error: "Brak adresu startowego lub docelowego" }, { status: 400 });
+    }
 
-  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${from}&destinations=${to}&key=${apiKey}`;
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
-  const res = await fetch(url);
-  const data = await res.json();
+    if (!apiKey) {
+      return Response.json({ error: "Brak klucza API Google Maps" }, { status: 500 });
+    }
 
-  if (data.status !== "OK") {
-    return Response.json({ error: "Błąd API" });
+    const url =
+      `https://maps.googleapis.com/maps/api/distancematrix/json` +
+      `?origins=${encodeURIComponent(from)}` +
+      `&destinations=${encodeURIComponent(to)}` +
+      `&language=pl` +
+      `&region=pl` +
+      `&key=${apiKey}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.status !== "OK") {
+      return Response.json({ error: "Błąd Google Maps API" }, { status: 500 });
+    }
+
+    const element = data.rows?.[0]?.elements?.[0];
+
+    if (!element || element.status !== "OK") {
+      return Response.json({ error: "Nie znaleziono trasy" }, { status: 400 });
+    }
+
+    const distanceKm = element.distance.value / 1000;
+
+    const price = Math.round(7 + distanceKm * 2.8);
+
+    return Response.json({
+      distance: distanceKm,
+      price,
+    });
+  } catch {
+    return Response.json({ error: "Błąd serwera" }, { status: 500 });
   }
-
-  const element = data.rows[0].elements[0];
-
-  if (element.status !== "OK") {
-    return Response.json({ error: "Nie znaleziono trasy" });
-  }
-
-  const distanceKm = element.distance.value / 1000;
-
-  const price = 8 + distanceKm * 3;
-
-  return Response.json({
-    distance: distanceKm,
-    price: Math.round(price),
-  });
 }
