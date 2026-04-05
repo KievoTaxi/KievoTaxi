@@ -10,6 +10,9 @@ export default function Home() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [rideTimeType, setRideTimeType] = useState<"now" | "later">("now");
+  const [rideTime, setRideTime] = useState("");
+
   async function handleQuote() {
     setError("");
     setDistance("");
@@ -17,6 +20,11 @@ export default function Home() {
 
     if (!from.trim() || !to.trim()) {
       setError("Wpisz adres startowy i docelowy.");
+      return;
+    }
+
+    if (rideTimeType === "later" && !rideTime.trim()) {
+      setError("Wybierz godzinę odbioru.");
       return;
     }
 
@@ -48,10 +56,16 @@ export default function Home() {
   }
 
   function handleWhatsAppOrder() {
+    const pickupTime =
+      rideTimeType === "now" ? "Jak najszybciej" : rideTime || "Do ustalenia";
+
     const message = `Dzień dobry, proszę o zamówienie przejazdu.
 
 Trasa:
 ${from} → ${to}
+
+Czas odbioru:
+${pickupTime}
 
 Szacowany dystans:
 ${distance}
@@ -173,6 +187,89 @@ ${price}`;
           />
         </div>
 
+        <div style={{ marginBottom: "18px" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "14px",
+              marginBottom: "8px",
+              color: "rgba(255,255,255,0.92)",
+              fontWeight: 600,
+            }}
+          >
+            Czas odbioru
+          </label>
+
+          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+            <button
+              type="button"
+              onClick={() => setRideTimeType("now")}
+              style={{
+                flex: 1,
+                padding: "12px",
+                borderRadius: "12px",
+                border:
+                  rideTimeType === "now"
+                    ? "2px solid #7CFF5B"
+                    : "1px solid rgba(255,255,255,0.15)",
+                background:
+                  rideTimeType === "now"
+                    ? "rgba(124,255,91,0.14)"
+                    : "rgba(255,255,255,0.08)",
+                color: "#ffffff",
+                fontSize: "14px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Jak najszybciej
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRideTimeType("later")}
+              style={{
+                flex: 1,
+                padding: "12px",
+                borderRadius: "12px",
+                border:
+                  rideTimeType === "later"
+                    ? "2px solid #7CFF5B"
+                    : "1px solid rgba(255,255,255,0.15)",
+                background:
+                  rideTimeType === "later"
+                    ? "rgba(124,255,91,0.14)"
+                    : "rgba(255,255,255,0.08)",
+                color: "#ffffff",
+                fontSize: "14px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Na konkretną godzinę
+            </button>
+          </div>
+
+          {rideTimeType === "later" && (
+            <input
+              type="time"
+              value={rideTime}
+              onChange={(e) => setRideTime(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                border: "1px solid rgba(255,255,255,0.15)",
+                background: "rgba(255,255,255,0.08)",
+                color: "#ffffff",
+                fontSize: "15px",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          )}
+        </div>
+
         <button
           onClick={handleQuote}
           style={{
@@ -216,8 +313,22 @@ ${price}`;
             <div style={{ fontSize: "15px", marginBottom: "8px" }}>
               Dystans: <strong>{distance}</strong>
             </div>
+
             <div style={{ fontSize: "18px", fontWeight: 700 }}>
               Cena: {price}
+            </div>
+
+            <div
+              style={{
+                marginTop: "8px",
+                fontSize: "14px",
+                color: "rgba(255,255,255,0.82)",
+              }}
+            >
+              Odbiór:{" "}
+              <strong>
+                {rideTimeType === "now" ? "Jak najszybciej" : rideTime}
+              </strong>
             </div>
 
             <button
@@ -238,6 +349,17 @@ ${price}`;
             >
               Zamów przejazd
             </button>
+
+            <div
+              style={{
+                marginTop: "10px",
+                fontSize: "12px",
+                color: "rgba(255,255,255,0.65)",
+                lineHeight: 1.5,
+              }}
+            >
+              Zamówienie potwierdzamy na WhatsApp po sprawdzeniu dostępności.
+            </div>
           </div>
         )}
       </div>
