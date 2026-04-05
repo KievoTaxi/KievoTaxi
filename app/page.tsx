@@ -16,7 +16,7 @@ export default function Home() {
     setPrice("");
 
     if (!from.trim() || !to.trim()) {
-      setError("Wpisz adres startowy i docelowy");
+      setError("Wpisz adres startowy i docelowy.");
       return;
     }
 
@@ -33,18 +33,34 @@ export default function Home() {
 
       const data = await res.json();
 
-      if (data.error) {
-        setError(data.error);
+      if (!res.ok || data.error) {
+        setError(data.error || "Nie udało się obliczyć ceny.");
         return;
       }
 
       setDistance(`${Number(data.distance).toFixed(1)} km`);
       setPrice(`${data.price} zł`);
     } catch {
-      setError("Coś poszło nie tak");
+      setError("Coś poszło nie tak. Spróbuj ponownie.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleWhatsAppOrder() {
+    const message = `Dzień dobry, proszę o zamówienie przejazdu.
+
+Trasa:
+${from} → ${to}
+
+Szacowany dystans:
+${distance}
+
+Szacowana cena:
+${price}`;
+
+    const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
   }
 
   return (
@@ -59,6 +75,7 @@ export default function Home() {
         justifyContent: "center",
         alignItems: "center",
         padding: "24px",
+        boxSizing: "border-box",
       }}
     >
       <div
@@ -71,6 +88,7 @@ export default function Home() {
           color: "#ffffff",
           boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
           backdropFilter: "blur(8px)",
+          boxSizing: "border-box",
         }}
       >
         <div style={{ marginBottom: "20px" }}>
@@ -86,7 +104,7 @@ export default function Home() {
           <div
             style={{
               fontSize: "14px",
-              color: "rgba(255,255,255,0.8)",
+              color: "rgba(255,255,255,0.82)",
               lineHeight: 1.5,
             }}
           >
@@ -101,7 +119,8 @@ export default function Home() {
               display: "block",
               fontSize: "14px",
               marginBottom: "8px",
-              color: "rgba(255,255,255,0.9)",
+              color: "rgba(255,255,255,0.92)",
+              fontWeight: 600,
             }}
           >
             Adres startowy
@@ -130,7 +149,8 @@ export default function Home() {
               display: "block",
               fontSize: "14px",
               marginBottom: "8px",
-              color: "rgba(255,255,255,0.9)",
+              color: "rgba(255,255,255,0.92)",
+              fontWeight: 600,
             }}
           >
             Adres docelowy
@@ -160,11 +180,12 @@ export default function Home() {
             padding: "14px 16px",
             borderRadius: "12px",
             border: "none",
-            background: "#16a34a",
-            color: "#ffffff",
+            background: "#7CFF5B",
+            color: "#111111",
             fontSize: "16px",
             fontWeight: 700,
             cursor: "pointer",
+            boxSizing: "border-box",
           }}
         >
           {loading ? "Liczenie..." : "Oblicz cenę"}
@@ -198,6 +219,25 @@ export default function Home() {
             <div style={{ fontSize: "18px", fontWeight: 700 }}>
               Cena: {price}
             </div>
+
+            <button
+              onClick={handleWhatsAppOrder}
+              style={{
+                marginTop: "16px",
+                width: "100%",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                border: "none",
+                background: "#25D366",
+                color: "#ffffff",
+                fontSize: "16px",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxSizing: "border-box",
+              }}
+            >
+              Zamów przejazd
+            </button>
           </div>
         )}
       </div>
