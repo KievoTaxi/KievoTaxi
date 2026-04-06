@@ -194,7 +194,7 @@ ${from} → ${to}
 Czas odbioru:
 ${pickupTime}
 
-Klient widział cenę na stronie. Obowiązuje cena z linku weryfikacyjnego.`;
+Kierowca weryfikuje prawidłową cenę i trasę wyłącznie z linku systemowego.`;
 
     const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
 
@@ -407,13 +407,8 @@ Klient widział cenę na stronie. Obowiązuje cena z linku weryfikacyjnego.`;
           {loading ? "Liczenie..." : "Oblicz cenę"}
         </button>
 
-        {statusText && (
-          <div style={statusStyle}>{statusText}</div>
-        )}
-
-        {error && (
-          <div style={errorStyle}>{error}</div>
-        )}
+        {statusText && <div style={statusStyle}>{statusText}</div>}
+        {error && <div style={errorStyle}>{error}</div>}
 
         {(distance || price) && !error && (
           <div style={resultCardStyle}>
@@ -425,25 +420,49 @@ Klient widział cenę na stronie. Obowiązuje cena z linku weryfikacyjnego.`;
               Cena: {price}
             </div>
 
-            <div style={{ marginTop: "8px", fontSize: "14px", color: "rgba(255,255,255,0.82)" }}>
-              Odbiór: <strong>{rideTimeType === "now" ? "Jak najszybciej" : rideTime}</strong>
+            <div
+              style={{
+                marginTop: "8px",
+                fontSize: "14px",
+                color: "rgba(255,255,255,0.82)",
+              }}
+            >
+              Odbiór:{" "}
+              <strong>
+                {rideTimeType === "now" ? "Jak najszybciej" : rideTime}
+              </strong>
             </div>
 
-            <div style={{ marginTop: "8px", fontSize: "14px", color: "rgba(255,255,255,0.82)" }}>
+            <div
+              style={{
+                marginTop: "8px",
+                fontSize: "14px",
+                color: "rgba(255,255,255,0.82)",
+              }}
+            >
               Liczba osób: <strong>{peopleCount}</strong>
             </div>
 
-            <div style={{ marginTop: "8px", fontSize: "14px", color: "rgba(255,255,255,0.82)" }}>
+            <div
+              style={{
+                marginTop: "8px",
+                fontSize: "14px",
+                color: "rgba(255,255,255,0.82)",
+              }}
+            >
               Kod wyceny: <strong>{quoteCode}</strong>
             </div>
 
-            <button onClick={handleWhatsAppOrder} style={{ ...whatsAppButtonStyle, marginTop: "16px" }}>
+            <button
+              onClick={handleWhatsAppOrder}
+              style={{ ...whatsAppButtonStyle, marginTop: "16px" }}
+            >
               Zamów przejazd
             </button>
 
             <div style={smallTextStyle}>
-              Zamówienie potwierdzamy na WhatsApp po sprawdzeniu dostępności.
-              Kierowca weryfikuje kurs po kodzie i linku systemowym.
+              Cena jest widoczna dla klienta na stronie. Kierowca weryfikuje
+              kurs wyłącznie po kodzie i linku systemowym.
             </div>
           </div>
         )}

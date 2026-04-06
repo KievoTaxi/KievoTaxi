@@ -22,9 +22,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const geocodeUrl =
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=pl&key=${apiKey}`;
-
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=pl&key=${apiKey}`;
       const geocodeRes = await fetch(geocodeUrl);
       const geocodeData = await geocodeRes.json();
 
@@ -56,12 +54,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const url =
-      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(
-        from
-      )}&destinations=${encodeURIComponent(
-        to
-      )}&mode=driving&language=pl&units=metric&key=${apiKey}`;
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(
+      from
+    )}&destinations=${encodeURIComponent(
+      to
+    )}&mode=driving&language=pl&units=metric&key=${apiKey}`;
 
     const res = await fetch(url);
     const data = await res.json();

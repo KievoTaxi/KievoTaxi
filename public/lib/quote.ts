@@ -31,7 +31,8 @@ function toBase64Url(input: string) {
 
 function fromBase64Url(input: string) {
   const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+  const padding =
+    normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
   return Buffer.from(normalized + padding, "base64").toString("utf8");
 }
 
