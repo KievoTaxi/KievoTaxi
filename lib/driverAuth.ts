@@ -55,15 +55,7 @@ function sign(data: string) {
 
 export function verifyDriverPassword(inputPassword: string) {
   const expectedPassword = getDriverPassword();
-
-  const inputHash = sha256(inputPassword);
-  const expectedHash = sha256(expectedPassword);
-
-  if (inputHash.length !== expectedHash.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(inputHash, expectedHash);
+  return inputPassword === expectedPassword;
 }
 
 export function createDriverSession(days = 30) {
