@@ -1,3 +1,5 @@
+import { createSignedQuote } from "@/lib/quote";
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -34,15 +36,22 @@ export async function POST(req: Request) {
       }
 
       const address = geocodeData.results[0].formatted_address;
-
       return Response.json({ address });
     }
 
-    const { from, to } = body;
+    const {
+      from,
+      to,
+      name,
+      phone,
+      peopleCount,
+      rideTimeType,
+      rideTime,
+    } = body;
 
-    if (!from || !to) {
+    if (!from || !to || !name || !phone || !peopleCount || !rideTimeType) {
       return Response.json(
-        { error: "Brak adresu startowego lub docelowego" },
+        { error: "Brakuje wymaganych danych do wyceny." },
         { status: 400 }
       );
     }
@@ -102,9 +111,26 @@ export async function POST(req: Request) {
     const baseFare = 8;
     const finalPrice = Math.round(baseFare + distanceKm * pricePerKm);
 
-    return Response.json({
-      distance: distanceKm,
+    const payload = {
+      from,
+      to,
+      name,
+      phone,
+      peopleCount,
+      rideTimeType,
+      rideTime: rideTime || "",
+      distanceKm,
       price: finalPrice,
+      createdAt: Date.now(),
+    };
+
+    const { token, quoteCode } = createSignedQuote(payload);
+
+    return Response.json({
+      distance: Number(distanceKm.toFixed(1)),
+      price: finalPrice,
+      token,
+      quoteCode,
     });
   } catch {
     return Response.json(

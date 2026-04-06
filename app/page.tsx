@@ -14,6 +14,9 @@ export default function Home() {
 
   const [distance, setDistance] = useState("");
   const [price, setPrice] = useState("");
+  const [quoteCode, setQuoteCode] = useState("");
+  const [quoteLink, setQuoteLink] = useState("");
+
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState("");
 
@@ -25,8 +28,7 @@ export default function Home() {
   }
 
   function isValidPhone(value: string) {
-    const digits = normalizePhone(value);
-    return digits.length >= 9;
+    return normalizePhone(value).length >= 9;
   }
 
   async function handleUseMyLocation() {
@@ -83,6 +85,8 @@ export default function Home() {
     setError("");
     setDistance("");
     setPrice("");
+    setQuoteCode("");
+    setQuoteLink("");
     setStatusText("");
 
     if (!from.trim() || !to.trim()) {
@@ -122,6 +126,11 @@ export default function Home() {
         body: JSON.stringify({
           from,
           to,
+          name,
+          phone: normalizePhone(phone),
+          peopleCount,
+          rideTimeType,
+          rideTime,
         }),
       });
 
@@ -135,6 +144,13 @@ export default function Home() {
 
       setDistance(`${Number(data.distance).toFixed(1)} km`);
       setPrice(`${data.price} zł`);
+      setQuoteCode(data.quoteCode);
+
+      const verifyUrl = `${window.location.origin}/verify?token=${encodeURIComponent(
+        data.token
+      )}`;
+
+      setQuoteLink(verifyUrl);
       setStatusText("Wycena gotowa.");
     } catch {
       setError("Coś poszło nie tak. Spróbuj ponownie.");
@@ -145,18 +161,8 @@ export default function Home() {
   }
 
   function handleWhatsAppOrder() {
-    if (!distance || !price) {
+    if (!distance || !price || !quoteCode || !quoteLink) {
       setError("Najpierw oblicz cenę.");
-      return;
-    }
-
-    if (!name.trim()) {
-      setError("Wpisz imię.");
-      return;
-    }
-
-    if (!isValidPhone(phone)) {
-      setError("Wpisz poprawny numer telefonu.");
       return;
     }
 
@@ -166,6 +172,12 @@ export default function Home() {
     const cleanPhone = normalizePhone(phone);
 
     const message = `Dzień dobry, proszę o zamówienie przejazdu.
+
+Kod wyceny:
+${quoteCode}
+
+Link weryfikacyjny:
+${quoteLink}
 
 Imię:
 ${name}
@@ -182,13 +194,7 @@ ${from} → ${to}
 Czas odbioru:
 ${pickupTime}
 
-Szacowany dystans:
-${distance}
-
-Szacowana cena:
-${price}
-
-Cena obowiązuje po potwierdzeniu przez kierowcę.`;
+Klient widział cenę na stronie. Obowiązuje cena z linku weryfikacyjnego.`;
 
     const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
 
@@ -247,17 +253,7 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
         </div>
 
         <div style={{ marginBottom: "16px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              marginBottom: "8px",
-              color: "rgba(255,255,255,0.92)",
-              fontWeight: 600,
-            }}
-          >
-            Adres startowy
-          </label>
+          <label style={labelStyle}>Adres startowy</label>
 
           <input
             type="text"
@@ -266,18 +262,7 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
             placeholder="np. Rzeszów, ul. Rejtana 23"
             autoComplete="off"
             spellCheck={false}
-            style={{
-              width: "100%",
-              padding: "14px 16px",
-              borderRadius: "12px",
-              border: "1px solid rgba(255,255,255,0.15)",
-              background: "rgba(255,255,255,0.08)",
-              color: "#ffffff",
-              fontSize: "15px",
-              outline: "none",
-              boxSizing: "border-box",
-              marginBottom: "10px",
-            }}
+            style={inputStyle}
           />
 
           <button
@@ -285,17 +270,10 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
             onClick={handleUseMyLocation}
             disabled={locating}
             style={{
-              width: "100%",
-              padding: "12px 16px",
-              borderRadius: "12px",
-              border: "1px solid rgba(255,255,255,0.15)",
-              background: "rgba(255,255,255,0.08)",
-              color: "#ffffff",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: locating ? "default" : "pointer",
-              boxSizing: "border-box",
+              ...secondaryButtonStyle,
+              marginTop: "10px",
               opacity: locating ? 0.75 : 1,
+              cursor: locating ? "default" : "pointer",
             }}
           >
             {locating ? "Pobieranie lokalizacji..." : "📍 Użyj mojej lokalizacji"}
@@ -303,18 +281,7 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
         </div>
 
         <div style={{ marginBottom: "18px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              marginBottom: "8px",
-              color: "rgba(255,255,255,0.92)",
-              fontWeight: 600,
-            }}
-          >
-            Adres docelowy
-          </label>
-
+          <label style={labelStyle}>Adres docelowy</label>
           <input
             type="text"
             value={to}
@@ -322,47 +289,16 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
             placeholder="np. Lotnisko Kraków Balice"
             autoComplete="off"
             spellCheck={false}
-            style={{
-              width: "100%",
-              padding: "14px 16px",
-              borderRadius: "12px",
-              border: "1px solid rgba(255,255,255,0.15)",
-              background: "rgba(255,255,255,0.08)",
-              color: "#ffffff",
-              fontSize: "15px",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
+            style={inputStyle}
           />
         </div>
 
         <div style={{ marginBottom: "18px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              marginBottom: "8px",
-              color: "rgba(255,255,255,0.92)",
-              fontWeight: 600,
-            }}
-          >
-            Liczba osób
-          </label>
-
+          <label style={labelStyle}>Liczba osób</label>
           <select
             value={peopleCount}
             onChange={(e) => setPeopleCount(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "14px 16px",
-              borderRadius: "12px",
-              border: "1px solid rgba(255,255,255,0.15)",
-              background: "rgba(255,255,255,0.08)",
-              color: "#ffffff",
-              fontSize: "15px",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
+            style={inputStyle}
           >
             <option value="1" style={{ color: "#000" }}>1 osoba</option>
             <option value="2" style={{ color: "#000" }}>2 osoby</option>
@@ -372,17 +308,7 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
         </div>
 
         <div style={{ marginBottom: "18px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              marginBottom: "8px",
-              color: "rgba(255,255,255,0.92)",
-              fontWeight: 600,
-            }}
-          >
-            Czas odbioru
-          </label>
+          <label style={labelStyle}>Czas odbioru</label>
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
             <button
@@ -393,9 +319,7 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
                 setError("");
               }}
               style={{
-                flex: 1,
-                padding: "12px",
-                borderRadius: "12px",
+                ...timeButtonStyle,
                 border:
                   rideTimeType === "now"
                     ? "2px solid #7CFF5B"
@@ -404,10 +328,6 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
                   rideTimeType === "now"
                     ? "rgba(124,255,91,0.14)"
                     : "rgba(255,255,255,0.08)",
-                color: "#ffffff",
-                fontSize: "14px",
-                fontWeight: 600,
-                cursor: "pointer",
               }}
             >
               Jak najszybciej
@@ -421,9 +341,7 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
                 setError("");
               }}
               style={{
-                flex: 1,
-                padding: "12px",
-                borderRadius: "12px",
+                ...timeButtonStyle,
                 border:
                   rideTimeType === "later"
                     ? "2px solid #7CFF5B"
@@ -432,10 +350,6 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
                   rideTimeType === "later"
                     ? "rgba(124,255,91,0.14)"
                     : "rgba(255,255,255,0.08)",
-                color: "#ffffff",
-                fontSize: "14px",
-                fontWeight: 600,
-                cursor: "pointer",
               }}
             >
               Na konkretną godzinę
@@ -449,72 +363,27 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
               onChange={(e) => setRideTime(e.target.value)}
               placeholder="np. 21:30"
               autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
               spellCheck={false}
-              inputMode="text"
-              style={{
-                width: "100%",
-                padding: "14px 16px",
-                borderRadius: "12px",
-                border: "1px solid rgba(255,255,255,0.15)",
-                background: "rgba(255,255,255,0.08)",
-                color: "#ffffff",
-                fontSize: "15px",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
+              style={inputStyle}
             />
           )}
         </div>
 
         <div style={{ marginBottom: "16px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              marginBottom: "8px",
-              color: "rgba(255,255,255,0.92)",
-              fontWeight: 600,
-            }}
-          >
-            Imię
-          </label>
-
+          <label style={labelStyle}>Imię</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="np. Anna"
+            placeholder="np. Mateusz"
             autoComplete="off"
             spellCheck={false}
-            style={{
-              width: "100%",
-              padding: "14px 16px",
-              borderRadius: "12px",
-              border: "1px solid rgba(255,255,255,0.15)",
-              background: "rgba(255,255,255,0.08)",
-              color: "#ffffff",
-              fontSize: "15px",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
+            style={inputStyle}
           />
         </div>
 
         <div style={{ marginBottom: "18px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              marginBottom: "8px",
-              color: "rgba(255,255,255,0.92)",
-              fontWeight: 600,
-            }}
-          >
-            Numer telefonu
-          </label>
-
+          <label style={labelStyle}>Numer telefonu</label>
           <input
             type="tel"
             value={phone}
@@ -522,18 +391,7 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
             placeholder="np. 575 558 705"
             autoComplete="off"
             spellCheck={false}
-            inputMode="tel"
-            style={{
-              width: "100%",
-              padding: "14px 16px",
-              borderRadius: "12px",
-              border: "1px solid rgba(255,255,255,0.15)",
-              background: "rgba(255,255,255,0.08)",
-              color: "#ffffff",
-              fontSize: "15px",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
+            style={inputStyle}
           />
         </div>
 
@@ -541,57 +399,24 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
           onClick={handleQuote}
           disabled={loading || locating}
           style={{
-            width: "100%",
-            padding: "14px 16px",
-            borderRadius: "12px",
-            border: "none",
-            background: "#7CFF5B",
-            color: "#111111",
-            fontSize: "16px",
-            fontWeight: 700,
-            cursor: loading || locating ? "default" : "pointer",
-            boxSizing: "border-box",
+            ...primaryButtonStyle,
             opacity: loading || locating ? 0.75 : 1,
+            cursor: loading || locating ? "default" : "pointer",
           }}
         >
           {loading ? "Liczenie..." : "Oblicz cenę"}
         </button>
 
         {statusText && (
-          <div
-            style={{
-              marginTop: "14px",
-              color: "rgba(255,255,255,0.82)",
-              fontSize: "13px",
-              lineHeight: 1.5,
-            }}
-          >
-            {statusText}
-          </div>
+          <div style={statusStyle}>{statusText}</div>
         )}
 
         {error && (
-          <div
-            style={{
-              marginTop: "16px",
-              color: "#fca5a5",
-              fontSize: "14px",
-              lineHeight: 1.5,
-            }}
-          >
-            {error}
-          </div>
+          <div style={errorStyle}>{error}</div>
         )}
 
         {(distance || price) && !error && (
-          <div
-            style={{
-              marginTop: "20px",
-              padding: "16px",
-              borderRadius: "14px",
-              background: "rgba(255,255,255,0.08)",
-            }}
-          >
+          <div style={resultCardStyle}>
             <div style={{ fontSize: "15px", marginBottom: "8px" }}>
               Dystans: <strong>{distance}</strong>
             </div>
@@ -600,58 +425,25 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
               Cena: {price}
             </div>
 
-            <div
-              style={{
-                marginTop: "8px",
-                fontSize: "14px",
-                color: "rgba(255,255,255,0.82)",
-              }}
-            >
-              Odbiór:{" "}
-              <strong>
-                {rideTimeType === "now" ? "Jak najszybciej" : rideTime}
-              </strong>
+            <div style={{ marginTop: "8px", fontSize: "14px", color: "rgba(255,255,255,0.82)" }}>
+              Odbiór: <strong>{rideTimeType === "now" ? "Jak najszybciej" : rideTime}</strong>
             </div>
 
-            <div
-              style={{
-                marginTop: "8px",
-                fontSize: "14px",
-                color: "rgba(255,255,255,0.82)",
-              }}
-            >
+            <div style={{ marginTop: "8px", fontSize: "14px", color: "rgba(255,255,255,0.82)" }}>
               Liczba osób: <strong>{peopleCount}</strong>
             </div>
 
-            <button
-              onClick={handleWhatsAppOrder}
-              style={{
-                marginTop: "16px",
-                width: "100%",
-                padding: "14px 16px",
-                borderRadius: "12px",
-                border: "none",
-                background: "#25D366",
-                color: "#ffffff",
-                fontSize: "16px",
-                fontWeight: 700,
-                cursor: "pointer",
-                boxSizing: "border-box",
-              }}
-            >
+            <div style={{ marginTop: "8px", fontSize: "14px", color: "rgba(255,255,255,0.82)" }}>
+              Kod wyceny: <strong>{quoteCode}</strong>
+            </div>
+
+            <button onClick={handleWhatsAppOrder} style={{ ...whatsAppButtonStyle, marginTop: "16px" }}>
               Zamów przejazd
             </button>
 
-            <div
-              style={{
-                marginTop: "10px",
-                fontSize: "12px",
-                color: "rgba(255,255,255,0.65)",
-                lineHeight: 1.5,
-              }}
-            >
+            <div style={smallTextStyle}>
               Zamówienie potwierdzamy na WhatsApp po sprawdzeniu dostępności.
-              Cena obowiązuje po potwierdzeniu przez kierowcę.
+              Kierowca weryfikuje kurs po kodzie i linku systemowym.
             </div>
           </div>
         )}
@@ -659,3 +451,98 @@ Cena obowiązuje po potwierdzeniu przez kierowcę.`;
     </div>
   );
 }
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: "14px",
+  marginBottom: "8px",
+  color: "rgba(255,255,255,0.92)",
+  fontWeight: 600,
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "#ffffff",
+  fontSize: "15px",
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const secondaryButtonStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "12px 16px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.08)",
+  color: "#ffffff",
+  fontSize: "14px",
+  fontWeight: 600,
+  boxSizing: "border-box",
+};
+
+const primaryButtonStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: "12px",
+  border: "none",
+  background: "#7CFF5B",
+  color: "#111111",
+  fontSize: "16px",
+  fontWeight: 700,
+  boxSizing: "border-box",
+};
+
+const timeButtonStyle: React.CSSProperties = {
+  flex: 1,
+  padding: "12px",
+  borderRadius: "12px",
+  color: "#ffffff",
+  fontSize: "14px",
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
+const statusStyle: React.CSSProperties = {
+  marginTop: "14px",
+  color: "rgba(255,255,255,0.82)",
+  fontSize: "13px",
+  lineHeight: 1.5,
+};
+
+const errorStyle: React.CSSProperties = {
+  marginTop: "16px",
+  color: "#fca5a5",
+  fontSize: "14px",
+  lineHeight: 1.5,
+};
+
+const resultCardStyle: React.CSSProperties = {
+  marginTop: "20px",
+  padding: "16px",
+  borderRadius: "14px",
+  background: "rgba(255,255,255,0.08)",
+};
+
+const whatsAppButtonStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: "12px",
+  border: "none",
+  background: "#25D366",
+  color: "#ffffff",
+  fontSize: "16px",
+  fontWeight: 700,
+  cursor: "pointer",
+  boxSizing: "border-box",
+};
+
+const smallTextStyle: React.CSSProperties = {
+  marginTop: "10px",
+  fontSize: "12px",
+  color: "rgba(255,255,255,0.65)",
+  lineHeight: 1.5,
+};
