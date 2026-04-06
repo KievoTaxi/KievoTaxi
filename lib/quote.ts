@@ -11,9 +11,10 @@ export type QuotePayload = {
   distanceKm: number;
   price: number;
   createdAt: number;
+  expiresAt: number;
 };
 
-function getSecret() {
+function getQuoteSecret() {
   const secret = process.env.QUOTE_SECRET;
   if (!secret) {
     throw new Error("Brak QUOTE_SECRET w env");
@@ -37,7 +38,10 @@ function fromBase64Url(input: string) {
 }
 
 function sign(data: string) {
-  return crypto.createHmac("sha256", getSecret()).update(data).digest("hex");
+  return crypto
+    .createHmac("sha256", getQuoteSecret())
+    .update(data)
+    .digest("hex");
 }
 
 export function createSignedQuote(payload: QuotePayload) {
@@ -68,4 +72,8 @@ export function verifySignedQuote(token: string): QuotePayload | null {
   } catch {
     return null;
   }
+}
+
+export function isQuoteExpired(payload: QuotePayload) {
+  return Date.now() > payload.expiresAt;
 }

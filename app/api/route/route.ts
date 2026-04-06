@@ -23,6 +23,7 @@ export async function POST(req: Request) {
       }
 
       const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=pl&key=${apiKey}`;
+
       const geocodeRes = await fetch(geocodeUrl);
       const geocodeData = await geocodeRes.json();
 
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
       }
 
       const address = geocodeData.results[0].formatted_address;
+
       return Response.json({ address });
     }
 
@@ -108,6 +110,27 @@ export async function POST(req: Request) {
     const baseFare = 8;
     const finalPrice = Math.round(baseFare + distanceKm * pricePerKm);
 
+    const now = Date.now();
+
+    let validUntil = now + 6 * 60 * 60 * 1000;
+
+    if (rideTimeType === "later" && rideTime) {
+      const [hoursStr, minutesStr] = String(rideTime).split(":");
+      const hours = Number(hoursStr);
+      const minutes = Number(minutesStr);
+
+      if (!Number.isNaN(hours) && !Number.isNaN(minutes)) {
+        const pickupDate = new Date();
+        pickupDate.setHours(hours, minutes, 0, 0);
+
+        if (pickupDate.getTime() < now) {
+          pickupDate.setDate(pickupDate.getDate() + 1);
+        }
+
+        validUntil = pickupDate.getTime() + 6 * 60 * 60 * 1000;
+      }
+    }
+
     const payload = {
       from,
       to,
@@ -118,7 +141,8 @@ export async function POST(req: Request) {
       rideTime: rideTime || "",
       distanceKm,
       price: finalPrice,
-      createdAt: Date.now(),
+      createdAt: now,
+      validUntil,
     };
 
     const { token, quoteCode } = createSignedQuote(payload);
@@ -128,6 +152,7 @@ export async function POST(req: Request) {
       price: finalPrice,
       token,
       quoteCode,
+      validUntil,
     });
   } catch (error) {
     console.error("API /api/route error:", error);
