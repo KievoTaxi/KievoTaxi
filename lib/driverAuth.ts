@@ -82,14 +82,21 @@ export function createDriverSession(days = 30) {
 }
 
 export function verifyDriverSession(token?: string | null) {
-  if (!token) return false;
+  if (!token || typeof token !== "string") {
+    return false;
+  }
 
   try {
     const parts = token.split(".");
-    if (parts.length !== 2) return false;
+    if (parts.length !== 2) {
+      return false;
+    }
 
     const [payloadPart, signature] = parts;
-    if (!payloadPart || !signature) return false;
+
+    if (!payloadPart || !signature) {
+      return false;
+    }
 
     const expectedSignature = sign(payloadPart);
 
