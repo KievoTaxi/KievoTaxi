@@ -132,17 +132,17 @@ export async function POST(req: Request) {
     }
 
     const payload = {
-      from,
-      to,
-      name,
-      phone,
-      peopleCount,
-      rideTimeType,
-      rideTime: rideTime || "",
-      distanceKm,
-      price: finalPrice,
-      createdAt: now,
-      validUntil,
+  from,
+  to,
+  name,
+  phone,
+  peopleCount,
+  rideTimeType,
+  rideTime,
+  distanceKm: Number(distanceKm.toFixed(1)),
+  price: finalPrice,
+  createdAt: Date.now(),
+  expiresAt: validUntil,
     };
 
     const { token, quoteCode } = createSignedQuote(payload);
