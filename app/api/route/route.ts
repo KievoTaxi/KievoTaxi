@@ -1,4 +1,4 @@
-import { createSignedQuote } from "@/lib/quote";
+import { createSignedQuote } from "../../../lib/quote";
 
 export async function POST(req: Request) {
   try {

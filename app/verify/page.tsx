@@ -1,4 +1,4 @@
-import { verifySignedQuote } from "@/lib/quote";
+import { verifySignedQuote } from "../../lib/quote";
 
 type SearchParams = Promise<{ token?: string }>;
 
