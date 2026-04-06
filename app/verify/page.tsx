@@ -1,4 +1,5 @@
 import { verifySignedQuote } from "../../lib/quote";
+import VerifyActions from "./VerifyActions";
 
 type SearchParams = Promise<{ token?: string }>;
 
@@ -86,6 +87,8 @@ export default async function VerifyPage({
         <div style={styles.priceBox}>
           Cena z systemu: <strong>{quote.price} zł</strong>
         </div>
+
+        <VerifyActions customerPhone={quote.phone} />
 
         <div style={styles.buttonGroup}>
           <a href={mapsPickupUrl} target="_blank" style={styles.button}>
