@@ -9,9 +9,59 @@ export default function Home() {
   const [price, setPrice] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   const [rideTimeType, setRideTimeType] = useState<"now" | "later">("now");
   const [rideTime, setRideTime] = useState("");
+
+  async function handleUseMyLocation() {
+    setError("");
+
+    if (!navigator.geolocation) {
+      setError("Ta przeglądarka nie obsługuje lokalizacji.");
+      return;
+    }
+
+    try {
+      setLocating(true);
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      const res = await fetch("/api/route", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          geocodeOnly: true,
+          lat,
+          lng,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setError(data.error || "Nie udało się pobrać lokalizacji.");
+        return;
+      }
+
+      setFrom(data.address || `${lat}, ${lng}`);
+    } catch {
+      setError("Nie udało się pobrać Twojej lokalizacji.");
+    } finally {
+      setLocating(false);
+    }
+  }
 
   async function handleQuote() {
     setError("");
@@ -24,7 +74,7 @@ export default function Home() {
     }
 
     if (rideTimeType === "later" && !rideTime.trim()) {
-      setError("Wybierz godzinę odbioru.");
+      setError("Wpisz godzinę odbioru, np. 21:30.");
       return;
     }
 
@@ -57,7 +107,7 @@ export default function Home() {
 
   function handleWhatsAppOrder() {
     const pickupTime =
-      rideTimeType === "now" ? "Jak najszybciej" : rideTime || "Do ustalenia";
+      rideTimeType === "now" ? "Jak najszybciej" : rideTime.trim();
 
     const message = `Dzień dobry, proszę o zamówienie przejazdu.
 
@@ -71,7 +121,10 @@ Szacowany dystans:
 ${distance}
 
 Szacowana cena:
-${price}`;
+${price}
+
+Forma płatności:
+Do ustalenia`;
 
     const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
@@ -95,7 +148,7 @@ ${price}`;
       <div
         style={{
           width: "100%",
-          maxWidth: "430px",
+          maxWidth: "440px",
           background: "rgba(0,0,0,0.72)",
           borderRadius: "18px",
           padding: "28px",
@@ -139,10 +192,14 @@ ${price}`;
           >
             Adres startowy
           </label>
+
           <input
+            type="text"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
             placeholder="np. Rzeszów, ul. Rejtana 23"
+            autoComplete="off"
+            spellCheck={false}
             style={{
               width: "100%",
               padding: "14px 16px",
@@ -153,8 +210,28 @@ ${price}`;
               fontSize: "15px",
               outline: "none",
               boxSizing: "border-box",
+              marginBottom: "10px",
             }}
           />
+
+          <button
+            type="button"
+            onClick={handleUseMyLocation}
+            style={{
+              width: "100%",
+              padding: "12px 16px",
+              borderRadius: "12px",
+              border: "1px solid rgba(255,255,255,0.15)",
+              background: "rgba(255,255,255,0.08)",
+              color: "#ffffff",
+              fontSize: "14px",
+              fontWeight: 600,
+              cursor: "pointer",
+              boxSizing: "border-box",
+            }}
+          >
+            {locating ? "Pobieranie lokalizacji..." : "📍 Użyj mojej lokalizacji"}
+          </button>
         </div>
 
         <div style={{ marginBottom: "18px" }}>
@@ -169,10 +246,14 @@ ${price}`;
           >
             Adres docelowy
           </label>
+
           <input
+            type="text"
             value={to}
             onChange={(e) => setTo(e.target.value)}
             placeholder="np. Lotnisko Kraków Balice"
+            autoComplete="off"
+            spellCheck={false}
             style={{
               width: "100%",
               padding: "14px 16px",
@@ -203,7 +284,11 @@ ${price}`;
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
             <button
               type="button"
-              onClick={() => setRideTimeType("now")}
+              onClick={() => {
+                setRideTimeType("now");
+                setRideTime("");
+                setError("");
+              }}
               style={{
                 flex: 1,
                 padding: "12px",
@@ -227,7 +312,11 @@ ${price}`;
 
             <button
               type="button"
-              onClick={() => setRideTimeType("later")}
+              onClick={() => {
+                setRideTimeType("later");
+                setRideTime("");
+                setError("");
+              }}
               style={{
                 flex: 1,
                 padding: "12px",
@@ -252,9 +341,16 @@ ${price}`;
 
           {rideTimeType === "later" && (
             <input
-              type="time"
+              key="ride-time-text"
+              type="text"
               value={rideTime}
               onChange={(e) => setRideTime(e.target.value)}
+              placeholder="np. 21:30"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              inputMode="text"
               style={{
                 width: "100%",
                 padding: "14px 16px",
