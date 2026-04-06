@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
-import { verifySignedQuote, isQuoteExpired } from "../../lib/quote";
+import DriverAccessForm from "./DriverAccessForm";
+import VerifyActions from "./VerifyActions";
 import {
   DRIVER_SESSION_COOKIE,
   verifyDriverSession,
 } from "../../lib/driverAuth";
-import DriverAccessForm from "./DriverAccessForm";
-import VerifyActions from "./VerifyActions";
+import { verifySignedQuote, isQuoteExpired } from "../../lib/quote";
 
 type SearchParams = Promise<{ token?: string }>;
 
@@ -15,10 +15,6 @@ export default async function VerifyPage({
   searchParams: SearchParams;
 }) {
   const { token } = await searchParams;
-
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get(DRIVER_SESSION_COOKIE)?.value;
-  const isAuthenticated = verifyDriverSession(sessionCookie);
 
   if (!token) {
     return (
@@ -55,19 +51,20 @@ export default async function VerifyPage({
     );
   }
 
-  if (!isAuthenticated) {
+  const cookieStore = await cookies();
+  const session = cookieStore.get(DRIVER_SESSION_COOKIE)?.value;
+  const isLogged = verifyDriverSession(session);
+
+  if (!isLogged) {
     return (
       <main style={styles.wrapper}>
         <div style={styles.card}>
           <h1 style={styles.title}>Dostęp chroniony</h1>
-
           <p style={styles.protectedMessage}>
             <strong>
-              Szczegóły realizacji kursu są dostępne wyłącznie dla kierowcy i
-              firmy.
+              Szczegóły realizacji kursu są dostępne wyłącznie dla kierowcy i firmy.
             </strong>
           </p>
-
           <DriverAccessForm />
         </div>
       </main>
@@ -123,7 +120,7 @@ export default async function VerifyPage({
 
         <div style={styles.row}>
           <span style={styles.label}>Dystans:</span>
-          <strong>{quote.distanceKm.toFixed(1)} km</strong>
+          <strong>{Number(quote.distanceKm).toFixed(1)} km</strong>
         </div>
 
         <div style={styles.priceBox}>
@@ -155,6 +152,8 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     alignItems: "center",
     padding: "24px",
+    boxSizing: "border-box",
+    fontFamily: "Arial, sans-serif",
   },
   card: {
     width: "100%",
@@ -162,29 +161,38 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#161616",
     borderRadius: "18px",
     padding: "24px",
+    boxSizing: "border-box",
   },
   title: {
+    marginTop: 0,
     marginBottom: "20px",
     fontSize: "28px",
   },
   protectedMessage: {
     fontSize: "15px",
     lineHeight: 1.6,
-    marginBottom: "10px",
+    color: "rgba(255,255,255,0.9)",
   },
   subtle: {
     color: "rgba(255,255,255,0.8)",
+    lineHeight: 1.6,
   },
   row: {
     display: "flex",
     justifyContent: "space-between",
+    gap: "16px",
     marginBottom: "14px",
+    lineHeight: 1.5,
   },
   rowBlock: {
     marginBottom: "18px",
+    lineHeight: 1.6,
   },
   label: {
     color: "rgba(255,255,255,0.7)",
+    display: "block",
+    marginBottom: "6px",
+    minWidth: "120px",
   },
   priceBox: {
     marginTop: "18px",
@@ -201,20 +209,22 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "12px",
   },
   button: {
-    padding: "14px",
+    display: "block",
+    textAlign: "center",
+    padding: "14px 16px",
     borderRadius: "12px",
     background: "#7CFF5B",
     color: "#111",
-    textAlign: "center",
     textDecoration: "none",
     fontWeight: 700,
   },
   buttonSecondary: {
-    padding: "14px",
+    display: "block",
+    textAlign: "center",
+    padding: "14px 16px",
     borderRadius: "12px",
     background: "#2a2a2a",
     color: "#fff",
-    textAlign: "center",
     textDecoration: "none",
     fontWeight: 700,
   },
