@@ -129,9 +129,16 @@ export async function POST(req: Request) {
       token,
       quoteCode,
     });
-  } catch {
+  } catch (error) {
+    console.error("API /api/route error:", error);
+
     return Response.json(
-      { error: "Wewnętrzny błąd serwera" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Wewnętrzny błąd serwera",
+      },
       { status: 500 }
     );
   }
