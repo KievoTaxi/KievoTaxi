@@ -6,10 +6,13 @@ type VerifyActionsProps = {
   customerPhone: string;
 };
 
+type ActionType = "accept" | "eta" | null;
+
 export default function VerifyActions({ customerPhone }: VerifyActionsProps) {
   const [etaMinutes, setEtaMinutes] = useState("10");
+  const [selectedAction, setSelectedAction] = useState<ActionType>(null);
 
-  const whatsappPhone = useMemo(() => {
+  const cleanPhone = useMemo(() => {
     const digits = customerPhone.replace(/\D/g, "");
 
     if (digits.startsWith("48") && digits.length >= 11) {
@@ -24,28 +27,53 @@ export default function VerifyActions({ customerPhone }: VerifyActionsProps) {
   }, [customerPhone]);
 
   function openWhatsApp(message: string) {
-    if (!whatsappPhone) return;
+    if (!cleanPhone) return;
 
-    const url = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
-      message
-    )}`;
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  }
+
+  function openSms(message: string) {
+    if (!cleanPhone) return;
+
+    const isiOS =
+      typeof navigator !== "undefined" &&
+      /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    const url = isiOS
+      ? `sms:${cleanPhone}&body=${encodeURIComponent(message)}`
+      : `sms:${cleanPhone}?body=${encodeURIComponent(message)}`;
 
     window.open(url, "_blank");
   }
 
-  function handleAcceptCourse() {
-    openWhatsApp("Dzień dobry, potwierdzam przyjęcie kursu. Już jadę.");
+  function getAcceptMessage() {
+    return "Dzień dobry, potwierdzam przyjęcie kursu. Już jadę.";
   }
 
-  function handleSendEta() {
-    openWhatsApp(
-      `Dzień dobry, potwierdzam kurs. Będę za około ${etaMinutes} minut.`
-    );
+  function getEtaMessage() {
+    return `Dzień dobry, potwierdzam kurs. Będę za około ${etaMinutes} minut.`;
+  }
+
+  function handleSend(channel: "whatsapp" | "sms") {
+    const message =
+      selectedAction === "accept" ? getAcceptMessage() : getEtaMessage();
+
+    if (channel === "whatsapp") {
+      openWhatsApp(message);
+    } else {
+      openSms(message);
+    }
   }
 
   return (
     <div style={styles.wrapper}>
-      <button onClick={handleAcceptCourse} style={styles.acceptButton}>
+      <button
+        onClick={() =>
+          setSelectedAction((prev) => (prev === "accept" ? null : "accept"))
+        }
+        style={styles.acceptButton}
+      >
         Akceptuj kurs
       </button>
 
@@ -67,10 +95,41 @@ export default function VerifyActions({ customerPhone }: VerifyActionsProps) {
           })}
         </select>
 
-        <button onClick={handleSendEta} style={styles.etaButton}>
+        <button
+          onClick={() =>
+            setSelectedAction((prev) => (prev === "eta" ? null : "eta"))
+          }
+          style={styles.etaButton}
+        >
           Wyślij czas do klienta
         </button>
       </div>
+
+      {selectedAction && (
+        <div style={styles.channelBox}>
+          <div style={styles.channelTitle}>
+            {selectedAction === "accept"
+              ? "Wybierz kanał akceptacji kursu"
+              : `Wyślij informację: będę za około ${etaMinutes} min`}
+          </div>
+
+          <div style={styles.channelButtons}>
+            <button
+              onClick={() => handleSend("whatsapp")}
+              style={styles.whatsAppButton}
+            >
+              Wyślij przez WhatsApp
+            </button>
+
+            <button
+              onClick={() => handleSend("sms")}
+              style={styles.smsButton}
+            >
+              Wyślij przez SMS
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -126,6 +185,54 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "14px 16px",
     borderRadius: "12px",
     background: "#323232",
+    color: "#fff",
+    textDecoration: "none",
+    fontWeight: 700,
+    border: "none",
+    fontSize: "16px",
+    cursor: "pointer",
+  },
+  channelBox: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    background: "#1a1a1a",
+    borderRadius: "14px",
+    padding: "14px",
+    border: "1px solid rgba(255,255,255,0.08)",
+  },
+  channelTitle: {
+    fontSize: "14px",
+    color: "rgba(255,255,255,0.85)",
+    lineHeight: 1.5,
+    fontWeight: 600,
+  },
+  channelButtons: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  },
+  whatsAppButton: {
+    display: "block",
+    width: "100%",
+    textAlign: "center",
+    padding: "14px 16px",
+    borderRadius: "12px",
+    background: "#25D366",
+    color: "#fff",
+    textDecoration: "none",
+    fontWeight: 700,
+    border: "none",
+    fontSize: "16px",
+    cursor: "pointer",
+  },
+  smsButton: {
+    display: "block",
+    width: "100%",
+    textAlign: "center",
+    padding: "14px 16px",
+    borderRadius: "12px",
+    background: "#3b82f6",
     color: "#fff",
     textDecoration: "none",
     fontWeight: 700,
