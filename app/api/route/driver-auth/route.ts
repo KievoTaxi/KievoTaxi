@@ -2,7 +2,7 @@ import {
   createDriverSession,
   DRIVER_SESSION_COOKIE,
   verifyDriverPassword,
-} from "../../../lib/driverAuth";
+} from "../../../../lib/driverAuth";
 
 const attempts = new Map<
   string,
