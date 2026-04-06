@@ -5,17 +5,33 @@ import { useState } from "react";
 export default function Home() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [distance, setDistance] = useState("");
-  const [price, setPrice] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [locating, setLocating] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [peopleCount, setPeopleCount] = useState("1");
 
   const [rideTimeType, setRideTimeType] = useState<"now" | "later">("now");
   const [rideTime, setRideTime] = useState("");
 
+  const [distance, setDistance] = useState("");
+  const [price, setPrice] = useState("");
+  const [statusText, setStatusText] = useState("");
+  const [error, setError] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
+
+  function normalizePhone(value: string) {
+    return value.replace(/\D/g, "");
+  }
+
+  function isValidPhone(value: string) {
+    const digits = normalizePhone(value);
+    return digits.length >= 9;
+  }
+
   async function handleUseMyLocation() {
     setError("");
+    setStatusText("");
 
     if (!navigator.geolocation) {
       setError("Ta przeglądarka nie obsługuje lokalizacji.");
@@ -67,9 +83,25 @@ export default function Home() {
     setError("");
     setDistance("");
     setPrice("");
+    setStatusText("");
 
     if (!from.trim() || !to.trim()) {
       setError("Wpisz adres startowy i docelowy.");
+      return;
+    }
+
+    if (!name.trim()) {
+      setError("Wpisz imię.");
+      return;
+    }
+
+    if (!phone.trim()) {
+      setError("Wpisz numer telefonu.");
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      setError("Wpisz poprawny numer telefonu.");
       return;
     }
 
@@ -80,36 +112,69 @@ export default function Home() {
 
     try {
       setLoading(true);
+      setStatusText("Liczenie ceny...");
 
       const res = await fetch("/api/route", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ from, to }),
+        body: JSON.stringify({
+          from,
+          to,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok || data.error) {
         setError(data.error || "Nie udało się obliczyć ceny.");
+        setStatusText("");
         return;
       }
 
       setDistance(`${Number(data.distance).toFixed(1)} km`);
       setPrice(`${data.price} zł`);
+      setStatusText("Wycena gotowa.");
     } catch {
       setError("Coś poszło nie tak. Spróbuj ponownie.");
+      setStatusText("");
     } finally {
       setLoading(false);
     }
   }
 
   function handleWhatsAppOrder() {
+    if (!distance || !price) {
+      setError("Najpierw oblicz cenę.");
+      return;
+    }
+
+    if (!name.trim()) {
+      setError("Wpisz imię.");
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      setError("Wpisz poprawny numer telefonu.");
+      return;
+    }
+
     const pickupTime =
       rideTimeType === "now" ? "Jak najszybciej" : rideTime.trim();
 
+    const cleanPhone = normalizePhone(phone);
+
     const message = `Dzień dobry, proszę o zamówienie przejazdu.
+
+Imię:
+${name}
+
+Telefon:
+${cleanPhone}
+
+Liczba osób:
+${peopleCount}
 
 Trasa:
 ${from} → ${to}
@@ -123,10 +188,11 @@ ${distance}
 Szacowana cena:
 ${price}
 
-Forma płatności:
-Do ustalenia`;
+Cena obowiązuje po potwierdzeniu przez kierowcę.`;
 
     const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
+
+    setStatusText("Przekierowuję do WhatsApp...");
     window.open(url, "_blank");
   }
 
@@ -217,6 +283,7 @@ Do ustalenia`;
           <button
             type="button"
             onClick={handleUseMyLocation}
+            disabled={locating}
             style={{
               width: "100%",
               padding: "12px 16px",
@@ -226,8 +293,9 @@ Do ustalenia`;
               color: "#ffffff",
               fontSize: "14px",
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: locating ? "default" : "pointer",
               boxSizing: "border-box",
+              opacity: locating ? 0.75 : 1,
             }}
           >
             {locating ? "Pobieranie lokalizacji..." : "📍 Użyj mojej lokalizacji"}
@@ -266,6 +334,41 @@ Do ustalenia`;
               boxSizing: "border-box",
             }}
           />
+        </div>
+
+        <div style={{ marginBottom: "18px" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "14px",
+              marginBottom: "8px",
+              color: "rgba(255,255,255,0.92)",
+              fontWeight: 600,
+            }}
+          >
+            Liczba osób
+          </label>
+
+          <select
+            value={peopleCount}
+            onChange={(e) => setPeopleCount(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "14px 16px",
+              borderRadius: "12px",
+              border: "1px solid rgba(255,255,255,0.15)",
+              background: "rgba(255,255,255,0.08)",
+              color: "#ffffff",
+              fontSize: "15px",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          >
+            <option value="1" style={{ color: "#000" }}>1 osoba</option>
+            <option value="2" style={{ color: "#000" }}>2 osoby</option>
+            <option value="3" style={{ color: "#000" }}>3 osoby</option>
+            <option value="4" style={{ color: "#000" }}>4 osoby</option>
+          </select>
         </div>
 
         <div style={{ marginBottom: "18px" }}>
@@ -341,7 +444,6 @@ Do ustalenia`;
 
           {rideTimeType === "later" && (
             <input
-              key="ride-time-text"
               type="text"
               value={rideTime}
               onChange={(e) => setRideTime(e.target.value)}
@@ -366,8 +468,78 @@ Do ustalenia`;
           )}
         </div>
 
+        <div style={{ marginBottom: "16px" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "14px",
+              marginBottom: "8px",
+              color: "rgba(255,255,255,0.92)",
+              fontWeight: 600,
+            }}
+          >
+            Imię
+          </label>
+
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="np. Anna"
+            autoComplete="off"
+            spellCheck={false}
+            style={{
+              width: "100%",
+              padding: "14px 16px",
+              borderRadius: "12px",
+              border: "1px solid rgba(255,255,255,0.15)",
+              background: "rgba(255,255,255,0.08)",
+              color: "#ffffff",
+              fontSize: "15px",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: "18px" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "14px",
+              marginBottom: "8px",
+              color: "rgba(255,255,255,0.92)",
+              fontWeight: 600,
+            }}
+          >
+            Numer telefonu
+          </label>
+
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="np. 575 558 705"
+            autoComplete="off"
+            spellCheck={false}
+            inputMode="tel"
+            style={{
+              width: "100%",
+              padding: "14px 16px",
+              borderRadius: "12px",
+              border: "1px solid rgba(255,255,255,0.15)",
+              background: "rgba(255,255,255,0.08)",
+              color: "#ffffff",
+              fontSize: "15px",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
         <button
           onClick={handleQuote}
+          disabled={loading || locating}
           style={{
             width: "100%",
             padding: "14px 16px",
@@ -377,12 +549,26 @@ Do ustalenia`;
             color: "#111111",
             fontSize: "16px",
             fontWeight: 700,
-            cursor: "pointer",
+            cursor: loading || locating ? "default" : "pointer",
             boxSizing: "border-box",
+            opacity: loading || locating ? 0.75 : 1,
           }}
         >
           {loading ? "Liczenie..." : "Oblicz cenę"}
         </button>
+
+        {statusText && (
+          <div
+            style={{
+              marginTop: "14px",
+              color: "rgba(255,255,255,0.82)",
+              fontSize: "13px",
+              lineHeight: 1.5,
+            }}
+          >
+            {statusText}
+          </div>
+        )}
 
         {error && (
           <div
@@ -427,6 +613,16 @@ Do ustalenia`;
               </strong>
             </div>
 
+            <div
+              style={{
+                marginTop: "8px",
+                fontSize: "14px",
+                color: "rgba(255,255,255,0.82)",
+              }}
+            >
+              Liczba osób: <strong>{peopleCount}</strong>
+            </div>
+
             <button
               onClick={handleWhatsAppOrder}
               style={{
@@ -455,6 +651,7 @@ Do ustalenia`;
               }}
             >
               Zamówienie potwierdzamy na WhatsApp po sprawdzeniu dostępności.
+              Cena obowiązuje po potwierdzeniu przez kierowcę.
             </div>
           </div>
         )}

@@ -75,10 +75,32 @@ export async function POST(req: Request) {
 
     const distanceKm = element.distance.value / 1000;
 
-    const baseFare = 8;
-    const perKm = 3;
+    if (distanceKm < 1) {
+      return Response.json(
+        { error: "Minimalny dystans przejazdu to 1 km." },
+        { status: 400 }
+      );
+    }
 
-    const finalPrice = Math.round(baseFare + distanceKm * perKm);
+    if (distanceKm > 300) {
+      return Response.json(
+        { error: "Maksymalny dystans przejazdu to 300 km." },
+        { status: 400 }
+      );
+    }
+
+    let pricePerKm = 0;
+
+    if (distanceKm <= 10) {
+      pricePerKm = 3.2;
+    } else if (distanceKm <= 50) {
+      pricePerKm = 2.9;
+    } else {
+      pricePerKm = 2.5;
+    }
+
+    const baseFare = 8;
+    const finalPrice = Math.round(baseFare + distanceKm * pricePerKm);
 
     return Response.json({
       distance: distanceKm,
