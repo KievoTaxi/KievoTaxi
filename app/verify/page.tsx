@@ -1,3 +1,3 @@
 export default function VerifyPage() {
-  throw new Error("VERIFY PAGE HARD FAIL");
+  return <div>TEST ERROR</div>;
 }
