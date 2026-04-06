@@ -194,7 +194,7 @@ ${from} → ${to}
 Czas odbioru:
 ${pickupTime}
 
-Kierowca weryfikuje prawidłową cenę i trasę wyłącznie z linku systemowego.`;
+Kierowca weryfikuje cenę i trasę wyłącznie przez link systemowy.`;
 
     const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
 
