@@ -197,7 +197,7 @@ ${pickupTime}
 
 Kierowca weryfikuje trasę i cenę przez link systemowy.`;
 
-    const url = `https://wa.me/48700111222?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
 
     setStatusText("Przekierowuję do WhatsApp...");
     window.open(url, "_blank");
