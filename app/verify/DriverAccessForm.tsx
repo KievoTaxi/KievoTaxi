@@ -19,7 +19,7 @@ export default function DriverAccessForm() {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/driver-auth", {
+      const res = await fetch("/api/route/driver-auth", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

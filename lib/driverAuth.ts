@@ -7,7 +7,13 @@ export function verifyDriverPassword(inputPassword: string) {
     throw new Error("Brak DRIVER_ACCESS_PASSWORD w env");
   }
 
-  return inputPassword.trim() === expectedPassword;
+  // DEBUG
+  console.log("INPUT:", `[${inputPassword}]`);
+  console.log("EXPECTED:", `[${expectedPassword}]`);
+  console.log("INPUT LENGTH:", inputPassword.length);
+  console.log("EXPECTED LENGTH:", expectedPassword.length);
+
+  return inputPassword.trim() === expectedPassword.trim();
 }
 
 export function createDriverSession(_days = 30) {
