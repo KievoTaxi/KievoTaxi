@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties, FormEvent } from "react";
 import { useState } from "react";
 
 export default function DriverAccessForm() {
@@ -7,11 +8,13 @@ export default function DriverAccessForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
 
-    if (!password.trim()) {
+    const trimmedPassword = password.trim();
+
+    if (!trimmedPassword) {
       setError("Wpisz hasło.");
       return;
     }
@@ -19,18 +22,18 @@ export default function DriverAccessForm() {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/route/driver-auth", {
+      const res = await fetch("/api/driver-auth", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: trimmedPassword }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setError(data.error || "Błąd logowania.");
+        setError(data?.error || "Błąd logowania.");
         return;
       }
 
@@ -53,7 +56,15 @@ export default function DriverAccessForm() {
         style={styles.input}
       />
 
-      <button type="submit" style={styles.button} disabled={loading}>
+      <button
+        type="submit"
+        style={{
+          ...styles.button,
+          opacity: loading ? 0.75 : 1,
+          cursor: loading ? "default" : "pointer",
+        }}
+        disabled={loading}
+      >
         {loading ? "Sprawdzanie..." : "Odblokuj dostęp"}
       </button>
 
@@ -62,7 +73,7 @@ export default function DriverAccessForm() {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   form: {
     display: "flex",
     flexDirection: "column",
@@ -89,7 +100,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#111",
     fontSize: "16px",
     fontWeight: 700,
-    cursor: "pointer",
   },
   error: {
     color: "#fca5a5",

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cookies } from "next/headers";
 import DriverAccessForm from "./DriverAccessForm";
 import VerifyActions from "./VerifyActions";
@@ -5,22 +6,28 @@ import {
   DRIVER_SESSION_COOKIE,
   verifyDriverSession,
 } from "../../lib/driverAuth";
-import { verifySignedQuote, isQuoteExpired } from "../../lib/quote";
+import { isQuoteExpired, verifySignedQuote } from "../../lib/quote";
 
-type SearchParams = Promise<{ token?: string }>;
+type VerifyPageProps = {
+  searchParams?: {
+    token?: string;
+  };
+};
 
 export default async function VerifyPage({
   searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const { token } = await searchParams;
+}: VerifyPageProps) {
+  const token =
+    typeof searchParams?.token === "string" ? searchParams.token : "";
 
   if (!token) {
     return (
       <main style={styles.wrapper}>
         <div style={styles.card}>
           <h1 style={styles.title}>Brak tokenu wyceny</h1>
+          <p style={styles.subtle}>
+            Link do weryfikacji nie zawiera danych potrzebnych do odczytu kursu.
+          </p>
         </div>
       </main>
     );
@@ -33,6 +40,9 @@ export default async function VerifyPage({
       <main style={styles.wrapper}>
         <div style={styles.card}>
           <h1 style={styles.title}>Nieprawidłowy link</h1>
+          <p style={styles.subtle}>
+            Ten link jest uszkodzony albo został zmieniony.
+          </p>
         </div>
       </main>
     );
@@ -52,7 +62,7 @@ export default async function VerifyPage({
   }
 
   const cookieStore = await cookies();
-  const session = cookieStore.get(DRIVER_SESSION_COOKIE)?.value;
+  const session = cookieStore.get(DRIVER_SESSION_COOKIE)?.value ?? null;
   const isLogged = verifyDriverSession(session);
 
   if (!isLogged) {
@@ -61,10 +71,8 @@ export default async function VerifyPage({
         <div style={styles.card}>
           <h1 style={styles.title}>Dostęp chroniony</h1>
           <p style={styles.protectedMessage}>
-            <strong>
-              Szczegóły realizacji kursu są dostępne wyłącznie dla kierowcy i
-              firmy.
-            </strong>
+            Szczegóły realizacji kursu są dostępne wyłącznie dla kierowcy i
+            firmy.
           </p>
           <DriverAccessForm />
         </div>
@@ -109,7 +117,7 @@ export default async function VerifyPage({
           <span style={styles.label}>Trasa:</span>
           <div>
             <div>{quote.from}</div>
-            <div style={{ opacity: 0.7, margin: "6px 0" }}>↓</div>
+            <div style={styles.arrow}>↓</div>
             <div>{quote.to}</div>
           </div>
         </div>
@@ -131,11 +139,21 @@ export default async function VerifyPage({
         <VerifyActions customerPhone={quote.phone} />
 
         <div style={styles.buttonGroup}>
-          <a href={mapsPickupUrl} target="_blank" style={styles.button}>
+          <a
+            href={mapsPickupUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={styles.button}
+          >
             Nawiguj do klienta
           </a>
 
-          <a href={mapsRouteUrl} target="_blank" style={styles.buttonSecondary}>
+          <a
+            href={mapsRouteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={styles.buttonSecondary}
+          >
             Otwórz trasę
           </a>
         </div>
@@ -144,7 +162,7 @@ export default async function VerifyPage({
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   wrapper: {
     minHeight: "100vh",
     background: "#0b0b0b",
@@ -184,6 +202,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "16px",
     marginBottom: "14px",
     lineHeight: 1.5,
+    alignItems: "flex-start",
   },
   rowBlock: {
     marginBottom: "18px",
@@ -194,6 +213,10 @@ const styles: Record<string, React.CSSProperties> = {
     display: "block",
     marginBottom: "6px",
     minWidth: "120px",
+  },
+  arrow: {
+    opacity: 0.7,
+    margin: "6px 0",
   },
   priceBox: {
     marginTop: "18px",

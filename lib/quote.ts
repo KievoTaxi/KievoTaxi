@@ -1,12 +1,14 @@
 import crypto from "crypto";
 
+export type RideTimeType = "now" | "later";
+
 export type QuotePayload = {
   from: string;
   to: string;
   name: string;
   phone: string;
   peopleCount: string;
-  rideTimeType: "now" | "later";
+  rideTimeType: RideTimeType;
   rideTime: string;
   distanceKm: number;
   price: number;
@@ -16,25 +18,20 @@ export type QuotePayload = {
 
 function getQuoteSecret() {
   const secret = process.env.QUOTE_SECRET;
+
   if (!secret) {
     throw new Error("Brak QUOTE_SECRET w env");
   }
+
   return secret;
 }
 
 function toBase64Url(input: string) {
-  return Buffer.from(input)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  return Buffer.from(input, "utf8").toString("base64url");
 }
 
 function fromBase64Url(input: string) {
-  const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
-  const padding =
-    normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
-  return Buffer.from(normalized + padding, "base64").toString("utf8");
+  return Buffer.from(input, "base64url").toString("utf8");
 }
 
 function sign(data: string) {
@@ -45,30 +42,65 @@ function sign(data: string) {
 }
 
 export function createSignedQuote(payload: QuotePayload) {
-  const json = JSON.stringify(payload);
-  const payloadPart = toBase64Url(json);
+  const payloadPart = toBase64Url(JSON.stringify(payload));
   const signature = sign(payloadPart);
   const token = `${payloadPart}.${signature}`;
   const quoteCode = `KT-${signature.slice(0, 8).toUpperCase()}`;
 
-  return {
-    token,
-    quoteCode,
-  };
+  return { token, quoteCode };
 }
 
 export function verifySignedQuote(token: string): QuotePayload | null {
+  if (!token || typeof token !== "string") {
+    return null;
+  }
+
   const parts = token.split(".");
-  if (parts.length !== 2) return null;
+  if (parts.length !== 2) {
+    return null;
+  }
 
   const [payloadPart, signature] = parts;
-  const expected = sign(payloadPart);
 
-  if (signature !== expected) return null;
+  if (!payloadPart || !signature) {
+    return null;
+  }
+
+  const expectedSignature = sign(payloadPart);
+
+  const signatureBuf = Buffer.from(signature, "utf8");
+  const expectedBuf = Buffer.from(expectedSignature, "utf8");
+
+  if (signatureBuf.length !== expectedBuf.length) {
+    return null;
+  }
+
+  if (!crypto.timingSafeEqual(signatureBuf, expectedBuf)) {
+    return null;
+  }
 
   try {
     const json = fromBase64Url(payloadPart);
-    return JSON.parse(json) as QuotePayload;
+    const payload = JSON.parse(json) as QuotePayload;
+
+    if (
+      !payload ||
+      typeof payload.from !== "string" ||
+      typeof payload.to !== "string" ||
+      typeof payload.name !== "string" ||
+      typeof payload.phone !== "string" ||
+      typeof payload.peopleCount !== "string" ||
+      (payload.rideTimeType !== "now" && payload.rideTimeType !== "later") ||
+      typeof payload.rideTime !== "string" ||
+      typeof payload.distanceKm !== "number" ||
+      typeof payload.price !== "number" ||
+      typeof payload.createdAt !== "number" ||
+      typeof payload.expiresAt !== "number"
+    ) {
+      return null;
+    }
+
+    return payload;
   } catch {
     return null;
   }

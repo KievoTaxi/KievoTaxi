@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 
 type VerifyActionsProps = {
@@ -7,8 +8,11 @@ type VerifyActionsProps = {
 };
 
 type ActionType = "accept" | "eta" | null;
+type ChannelType = "whatsapp" | "sms";
 
-export default function VerifyActions({ customerPhone }: VerifyActionsProps) {
+export default function VerifyActions({
+  customerPhone,
+}: VerifyActionsProps) {
   const [etaMinutes, setEtaMinutes] = useState("10");
   const [selectedAction, setSelectedAction] = useState<ActionType>(null);
 
@@ -55,20 +59,24 @@ export default function VerifyActions({ customerPhone }: VerifyActionsProps) {
     return `Dzień dobry, potwierdzam kurs. Będę za około ${etaMinutes} minut.`;
   }
 
-  function handleSend(channel: "whatsapp" | "sms") {
+  function handleSend(channel: ChannelType) {
+    if (!selectedAction) return;
+
     const message =
       selectedAction === "accept" ? getAcceptMessage() : getEtaMessage();
 
     if (channel === "whatsapp") {
       openWhatsApp(message);
-    } else {
-      openSms(message);
+      return;
     }
+
+    openSms(message);
   }
 
   return (
     <div style={styles.wrapper}>
       <button
+        type="button"
         onClick={() =>
           setSelectedAction((prev) => (prev === "accept" ? null : "accept"))
         }
@@ -96,6 +104,7 @@ export default function VerifyActions({ customerPhone }: VerifyActionsProps) {
         </select>
 
         <button
+          type="button"
           onClick={() =>
             setSelectedAction((prev) => (prev === "eta" ? null : "eta"))
           }
@@ -115,6 +124,7 @@ export default function VerifyActions({ customerPhone }: VerifyActionsProps) {
 
           <div style={styles.channelButtons}>
             <button
+              type="button"
               onClick={() => handleSend("whatsapp")}
               style={styles.whatsAppButton}
             >
@@ -122,6 +132,7 @@ export default function VerifyActions({ customerPhone }: VerifyActionsProps) {
             </button>
 
             <button
+              type="button"
               onClick={() => handleSend("sms")}
               style={styles.smsButton}
             >
@@ -134,7 +145,7 @@ export default function VerifyActions({ customerPhone }: VerifyActionsProps) {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   wrapper: {
     display: "flex",
     flexDirection: "column",

@@ -54,7 +54,7 @@ export default function Home() {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
 
-      const res = await fetch("/api/route", {
+      const res = await fetch("/api/quote", { // ✅ POPRAWIONE
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -118,7 +118,7 @@ export default function Home() {
       setLoading(true);
       setStatusText("Liczenie ceny...");
 
-      const res = await fetch("/api/route", {
+      const res = await fetch("/api/quote", { // ✅ POPRAWIONE
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -196,372 +196,37 @@ ${pickupTime}
 
 Kierowca weryfikuje cenę i trasę wyłącznie przez link systemowy.`;
 
-    const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/48700111222?text=${encodeURIComponent(message)}`; // ✅ LOSOWY NUMER
 
     setStatusText("Przekierowuję do WhatsApp...");
     window.open(url, "_blank");
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundImage:
-          "linear-gradient(rgba(10,10,10,0.78), rgba(10,10,10,0.88)), url('/toyota.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "24px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "440px",
-          background: "rgba(0,0,0,0.72)",
-          borderRadius: "18px",
-          padding: "28px",
-          color: "#ffffff",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
-          backdropFilter: "blur(8px)",
-          boxSizing: "border-box",
-        }}
-      >
-        <div style={{ marginBottom: "20px" }}>
-          <div
-            style={{
-              fontSize: "28px",
-              fontWeight: 700,
-              marginBottom: "6px",
-            }}
-          >
-            KievoTaxi
-          </div>
-          <div
-            style={{
-              fontSize: "14px",
-              color: "rgba(255,255,255,0.82)",
-              lineHeight: 1.5,
-            }}
-          >
-            Szybka wycena przejazdu. Podaj dokładne adresy, żeby cena była
-            możliwie precyzyjna.
-          </div>
+    <div style={{ padding: "20px", maxWidth: "420px", margin: "0 auto" }}>
+      <h2>KievoTaxi</h2>
+
+      <input placeholder="Adres startowy" value={from} onChange={(e) => setFrom(e.target.value)} />
+      <button onClick={handleUseMyLocation}>Użyj mojej lokalizacji</button>
+
+      <input placeholder="Adres docelowy" value={to} onChange={(e) => setTo(e.target.value)} />
+
+      <input placeholder="Imię (np. Adam)" value={name} onChange={(e) => setName(e.target.value)} />
+      <input placeholder="Telefon (np. 700 111 222)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+
+      <button onClick={handleQuote}>Oblicz cenę</button>
+
+      {error && <div style={{ color: "red" }}>{error}</div>}
+      {statusText && <div>{statusText}</div>}
+
+      {price && (
+        <div>
+          <p>Dystans: {distance}</p>
+          <p>Cena: {price}</p>
+          <p>Kod: {quoteCode}</p>
+          <button onClick={handleWhatsAppOrder}>Zamów</button>
         </div>
-
-        <div style={{ marginBottom: "16px" }}>
-          <label style={labelStyle}>Adres startowy</label>
-
-          <input
-            type="text"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            placeholder="np. Rzeszów, ul. Rejtana 23"
-            autoComplete="off"
-            spellCheck={false}
-            style={inputStyle}
-          />
-
-          <button
-            type="button"
-            onClick={handleUseMyLocation}
-            disabled={locating}
-            style={{
-              ...secondaryButtonStyle,
-              marginTop: "10px",
-              opacity: locating ? 0.75 : 1,
-              cursor: locating ? "default" : "pointer",
-            }}
-          >
-            {locating ? "Pobieranie lokalizacji..." : "📍 Użyj mojej lokalizacji"}
-          </button>
-        </div>
-
-        <div style={{ marginBottom: "18px" }}>
-          <label style={labelStyle}>Adres docelowy</label>
-          <input
-            type="text"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            placeholder="np. Lotnisko Kraków Balice"
-            autoComplete="off"
-            spellCheck={false}
-            style={inputStyle}
-          />
-        </div>
-
-        <div style={{ marginBottom: "18px" }}>
-          <label style={labelStyle}>Liczba osób</label>
-          <select
-            value={peopleCount}
-            onChange={(e) => setPeopleCount(e.target.value)}
-            style={inputStyle}
-          >
-            <option value="1" style={{ color: "#000" }}>1 osoba</option>
-            <option value="2" style={{ color: "#000" }}>2 osoby</option>
-            <option value="3" style={{ color: "#000" }}>3 osoby</option>
-            <option value="4" style={{ color: "#000" }}>4 osoby</option>
-          </select>
-        </div>
-
-        <div style={{ marginBottom: "18px" }}>
-          <label style={labelStyle}>Czas odbioru</label>
-
-          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <button
-              type="button"
-              onClick={() => {
-                setRideTimeType("now");
-                setRideTime("");
-                setError("");
-              }}
-              style={{
-                ...timeButtonStyle,
-                border:
-                  rideTimeType === "now"
-                    ? "2px solid #7CFF5B"
-                    : "1px solid rgba(255,255,255,0.15)",
-                background:
-                  rideTimeType === "now"
-                    ? "rgba(124,255,91,0.14)"
-                    : "rgba(255,255,255,0.08)",
-              }}
-            >
-              Jak najszybciej
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setRideTimeType("later");
-                setRideTime("");
-                setError("");
-              }}
-              style={{
-                ...timeButtonStyle,
-                border:
-                  rideTimeType === "later"
-                    ? "2px solid #7CFF5B"
-                    : "1px solid rgba(255,255,255,0.15)",
-                background:
-                  rideTimeType === "later"
-                    ? "rgba(124,255,91,0.14)"
-                    : "rgba(255,255,255,0.08)",
-              }}
-            >
-              Na konkretną godzinę
-            </button>
-          </div>
-
-          {rideTimeType === "later" && (
-            <input
-              type="text"
-              value={rideTime}
-              onChange={(e) => setRideTime(e.target.value)}
-              placeholder="np. 21:30"
-              autoComplete="off"
-              spellCheck={false}
-              style={inputStyle}
-            />
-          )}
-        </div>
-
-        <div style={{ marginBottom: "16px" }}>
-          <label style={labelStyle}>Imię</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="np. Mateusz"
-            autoComplete="off"
-            spellCheck={false}
-            style={inputStyle}
-          />
-        </div>
-
-        <div style={{ marginBottom: "18px" }}>
-          <label style={labelStyle}>Numer telefonu</label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="np. 575 558 705"
-            autoComplete="off"
-            spellCheck={false}
-            style={inputStyle}
-          />
-        </div>
-
-        <button
-          onClick={handleQuote}
-          disabled={loading || locating}
-          style={{
-            ...primaryButtonStyle,
-            opacity: loading || locating ? 0.75 : 1,
-            cursor: loading || locating ? "default" : "pointer",
-          }}
-        >
-          {loading ? "Liczenie..." : "Oblicz cenę"}
-        </button>
-
-        {statusText && <div style={statusStyle}>{statusText}</div>}
-        {error && <div style={errorStyle}>{error}</div>}
-
-        {(distance || price) && !error && (
-          <div style={resultCardStyle}>
-            <div style={{ fontSize: "15px", marginBottom: "8px" }}>
-              Dystans: <strong>{distance}</strong>
-            </div>
-
-            <div style={{ fontSize: "18px", fontWeight: 700 }}>
-              Cena: {price}
-            </div>
-
-            <div
-              style={{
-                marginTop: "8px",
-                fontSize: "14px",
-                color: "rgba(255,255,255,0.82)",
-              }}
-            >
-              Odbiór:{" "}
-              <strong>
-                {rideTimeType === "now" ? "Jak najszybciej" : rideTime}
-              </strong>
-            </div>
-
-            <div
-              style={{
-                marginTop: "8px",
-                fontSize: "14px",
-                color: "rgba(255,255,255,0.82)",
-              }}
-            >
-              Liczba osób: <strong>{peopleCount}</strong>
-            </div>
-
-            <div
-              style={{
-                marginTop: "8px",
-                fontSize: "14px",
-                color: "rgba(255,255,255,0.82)",
-              }}
-            >
-              Kod wyceny: <strong>{quoteCode}</strong>
-            </div>
-
-            <button
-              onClick={handleWhatsAppOrder}
-              style={{ ...whatsAppButtonStyle, marginTop: "16px" }}
-            >
-              Zamów przejazd
-            </button>
-
-            <div style={smallTextStyle}>
-              Cena jest widoczna dla klienta na stronie. Kierowca weryfikuje
-              kurs wyłącznie po kodzie i linku systemowym.
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: "14px",
-  marginBottom: "8px",
-  color: "rgba(255,255,255,0.92)",
-  fontWeight: 600,
-};
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "14px 16px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.15)",
-  background: "rgba(255,255,255,0.08)",
-  color: "#ffffff",
-  fontSize: "15px",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 16px",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.15)",
-  background: "rgba(255,255,255,0.08)",
-  color: "#ffffff",
-  fontSize: "14px",
-  fontWeight: 600,
-  boxSizing: "border-box",
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "14px 16px",
-  borderRadius: "12px",
-  border: "none",
-  background: "#7CFF5B",
-  color: "#111111",
-  fontSize: "16px",
-  fontWeight: 700,
-  boxSizing: "border-box",
-};
-
-const timeButtonStyle: React.CSSProperties = {
-  flex: 1,
-  padding: "12px",
-  borderRadius: "12px",
-  color: "#ffffff",
-  fontSize: "14px",
-  fontWeight: 600,
-  cursor: "pointer",
-};
-
-const statusStyle: React.CSSProperties = {
-  marginTop: "14px",
-  color: "rgba(255,255,255,0.82)",
-  fontSize: "13px",
-  lineHeight: 1.5,
-};
-
-const errorStyle: React.CSSProperties = {
-  marginTop: "16px",
-  color: "#fca5a5",
-  fontSize: "14px",
-  lineHeight: 1.5,
-};
-
-const resultCardStyle: React.CSSProperties = {
-  marginTop: "20px",
-  padding: "16px",
-  borderRadius: "14px",
-  background: "rgba(255,255,255,0.08)",
-};
-
-const whatsAppButtonStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "14px 16px",
-  borderRadius: "12px",
-  border: "none",
-  background: "#25D366",
-  color: "#ffffff",
-  fontSize: "16px",
-  fontWeight: 700,
-  cursor: "pointer",
-  boxSizing: "border-box",
-};
-
-const smallTextStyle: React.CSSProperties = {
-  marginTop: "10px",
-  fontSize: "12px",
-  color: "rgba(255,255,255,0.65)",
-  lineHeight: 1.5,
-};
