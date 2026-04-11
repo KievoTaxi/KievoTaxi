@@ -66,14 +66,14 @@ export default function Home() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      if (!res.ok || data.error) {
-        setError(data.error || "Nie udało się pobrać Twojej lokalizacji.");
+      if (!res.ok || data?.error) {
+        setError(data?.error || "Nie udało się pobrać Twojej lokalizacji.");
         return;
       }
 
-      setFrom(data.address || `${lat}, ${lng}`);
+      setFrom(data?.address || `${lat}, ${lng}`);
       setStatusText("Adres startowy został uzupełniony.");
     } catch {
       setError("Nie udało się pobrać Twojej lokalizacji.");
@@ -135,10 +135,10 @@ export default function Home() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      if (!res.ok || data.error) {
-        setError(data.error || "Nie udało się obliczyć ceny.");
+      if (!res.ok || data?.error) {
+        setError(data?.error || "Nie udało się obliczyć ceny.");
         setStatusText("");
         return;
       }
@@ -205,47 +205,44 @@ Kierowca weryfikuje trasę i cenę przez link systemowy.`;
 
   return (
     <main style={styles.page}>
-      <div style={styles.pageOverlay} />
+      <div style={styles.background} />
+      <div style={styles.overlay} />
 
       <section style={styles.shell}>
-        <div style={styles.heroCard}>
-          <img
-            src="/toyota-hero.jpg"
-            alt="KievoTaxi"
-            style={styles.heroImage}
-          />
+        <div style={styles.heroTextBox}>
+          <div style={styles.badge}>Prywatny przejazd • szybka wycena</div>
 
-          <div style={styles.heroOverlay}>
-            <div style={styles.heroBadge}>Prywatny przejazd • szybka wycena</div>
+          <h1 style={styles.title}>
+            Twój prywatny przejazd.
+            <br />
+            Bez komplikacji.
+          </h1>
 
-            <h1 style={styles.heroTitle}>
-              Twój prywatny przejazd.
-              <br />
-              Bez komplikacji.
-            </h1>
+          <p style={styles.subtitle}>Stała cena. Bez niespodzianek.</p>
 
-            <p style={styles.heroSubtitle}>
-              Stała cena. Bez niespodzianek.
-            </p>
-
-            <div style={styles.heroList}>
-              <div style={styles.heroListItem}>✔ Komfortowy i sprawdzony kierowca</div>
-              <div style={styles.heroListItem}>✔ Przejrzysta cena przed startem</div>
-              <div style={styles.heroListItem}>✔ Bezpieczny przejazd o każdej porze</div>
+          <div style={styles.heroList}>
+            <div style={styles.heroListItem}>
+              <span style={styles.checkCircle}>✓</span>
+              <span>Komfortowy i sprawdzony kierowca</span>
+            </div>
+            <div style={styles.heroListItem}>
+              <span style={styles.checkCircle}>✓</span>
+              <span>Przejrzysta cena przed startem</span>
+            </div>
+            <div style={styles.heroListItem}>
+              <span style={styles.checkCircle}>✓</span>
+              <span>Bezpieczny przejazd o każdej porze</span>
             </div>
           </div>
         </div>
 
         <div style={styles.formCard}>
-          <div style={styles.formHeader}>
-            <h2 style={styles.formTitle}>Oblicz cenę przejazdu</h2>
-            <p style={styles.formSubtitle}>
-              Wpisz dokładny adres startowy i docelowy, żeby wycena była możliwie
-              precyzyjna.
-            </p>
-          </div>
+          <h2 style={styles.formTitle}>Oblicz cenę przejazdu</h2>
+          <p style={styles.formSubtitle}>
+            Wpisz trasę, wybierz czas odbioru i zamów kurs po wycenie.
+          </p>
 
-          <div style={styles.field}>
+          <div style={styles.fieldGroup}>
             <label style={styles.label}>Adres startowy</label>
             <input
               type="text"
@@ -270,7 +267,7 @@ Kierowca weryfikuje trasę i cenę przez link systemowy.`;
             </button>
           </div>
 
-          <div style={styles.field}>
+          <div style={styles.fieldGroup}>
             <label style={styles.label}>Adres docelowy</label>
             <input
               type="text"
@@ -283,7 +280,7 @@ Kierowca weryfikuje trasę i cenę przez link systemowy.`;
             />
           </div>
 
-          <div style={styles.field}>
+          <div style={styles.fieldGroup}>
             <label style={styles.label}>Liczba osób</label>
             <select
               value={peopleCount}
@@ -305,7 +302,7 @@ Kierowca weryfikuje trasę i cenę przez link systemowy.`;
             </select>
           </div>
 
-          <div style={styles.field}>
+          <div style={styles.fieldGroup}>
             <label style={styles.label}>Czas odbioru</label>
 
             <div style={styles.timeGrid}>
@@ -356,7 +353,7 @@ Kierowca weryfikuje trasę i cenę przez link systemowy.`;
             )}
           </div>
 
-          <div style={styles.field}>
+          <div style={styles.fieldGroup}>
             <label style={styles.label}>Imię</label>
             <input
               type="text"
@@ -369,7 +366,7 @@ Kierowca weryfikuje trasę i cenę przez link systemowy.`;
             />
           </div>
 
-          <div style={styles.field}>
+          <div style={styles.fieldGroup}>
             <label style={styles.label}>Numer telefonu</label>
             <input
               type="tel"
@@ -452,160 +449,158 @@ const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
     position: "relative",
-    background: "#040404",
     overflow: "hidden",
+    background: "#050505",
   },
-  pageOverlay: {
+  background: {
+    position: "absolute",
+    inset: 0,
+    backgroundImage: "url('/toyota-hero.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    transform: "scale(1.03)",
+  },
+  overlay: {
     position: "absolute",
     inset: 0,
     background:
-      "radial-gradient(circle at top left, rgba(124,255,91,0.08), transparent 28%), linear-gradient(180deg, rgba(0,0,0,0.40), rgba(0,0,0,0.80))",
+      "linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.52) 35%, rgba(0,0,0,0.74) 100%)",
   },
   shell: {
     position: "relative",
     zIndex: 1,
-    width: "100%",
-    maxWidth: "1000px",
+    minHeight: "100vh",
+    maxWidth: "560px",
     margin: "0 auto",
-    padding: "28px 16px 40px",
+    padding: "26px 16px 40px",
     boxSizing: "border-box",
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-    gap: "24px",
-    alignItems: "stretch",
-  },
-  heroCard: {
-    position: "relative",
-    minHeight: "640px",
-    maxWidth: "420px",
-    width: "100%",
-    borderRadius: "24px",
-    overflow: "hidden",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 24px 70px rgba(0,0,0,0.40)",
-    justifySelf: "start",
-  },
-  heroImage: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    display: "block",
-  },
-  heroOverlay: {
-    position: "absolute",
-    inset: 0,
-    padding: "28px",
     display: "flex",
     flexDirection: "column",
-    justifyContent: "flex-start",
-    background:
-      "linear-gradient(180deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.58) 45%, rgba(0,0,0,0.78) 100%)",
-    color: "#fff",
-    boxSizing: "border-box",
+    justifyContent: "space-between",
+    gap: "22px",
   },
-  heroBadge: {
-    alignSelf: "flex-start",
+  heroTextBox: {
+    color: "#fff",
+    paddingTop: "10px",
+  },
+  badge: {
     display: "inline-block",
-    padding: "9px 14px",
+    padding: "10px 16px",
     borderRadius: "999px",
-    background: "rgba(124,255,91,0.12)",
-    border: "1px solid rgba(124,255,91,0.22)",
-    color: "#d1ffc4",
+    background: "rgba(146,255,104,0.12)",
+    border: "1px solid rgba(146,255,104,0.24)",
+    color: "#d4ffc4",
     fontSize: "13px",
     fontWeight: 800,
-    marginBottom: "18px",
+    marginBottom: "20px",
+    backdropFilter: "blur(6px)",
   },
-  heroTitle: {
+  title: {
     margin: 0,
-    fontSize: "48px",
+    fontSize: "clamp(42px, 10vw, 68px)",
     lineHeight: 0.95,
-    letterSpacing: "-0.03em",
+    letterSpacing: "-0.045em",
     fontWeight: 900,
-    maxWidth: "320px",
+    maxWidth: "420px",
+    textShadow: "0 8px 30px rgba(0,0,0,0.32)",
   },
-  heroSubtitle: {
+  subtitle: {
     marginTop: "18px",
-    marginBottom: "22px",
-    fontSize: "19px",
-    lineHeight: 1.4,
-    color: "rgba(255,255,255,0.92)",
-    fontWeight: 700,
+    marginBottom: "18px",
+    fontSize: "clamp(18px, 4.6vw, 26px)",
+    lineHeight: 1.35,
+    fontWeight: 800,
+    color: "#fff4e6",
+    textShadow: "0 4px 18px rgba(0,0,0,0.28)",
   },
   heroList: {
     display: "grid",
     gap: "14px",
-    fontSize: "15px",
-    lineHeight: 1.55,
-    color: "rgba(255,255,255,0.94)",
-    maxWidth: "320px",
+    maxWidth: "420px",
   },
   heroListItem: {
-    textShadow: "0 2px 12px rgba(0,0,0,0.35)",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    fontSize: "clamp(15px, 4vw, 19px)",
+    lineHeight: 1.45,
+    color: "rgba(255,245,232,0.97)",
+    textShadow: "0 4px 16px rgba(0,0,0,0.22)",
+  },
+  checkCircle: {
+    width: "34px",
+    height: "34px",
+    borderRadius: "999px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(255,235,205,0.10)",
+    border: "2px solid rgba(255,235,205,0.80)",
+    color: "#fff6e7",
+    fontWeight: 900,
+    flexShrink: 0,
+    boxSizing: "border-box",
   },
   formCard: {
     width: "100%",
-    maxWidth: "520px",
-    background: "rgba(12,12,12,0.78)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(8,8,8,0.72)",
+    border: "1px solid rgba(255,255,255,0.10)",
     borderRadius: "24px",
-    padding: "24px",
-    color: "#fff",
-    boxSizing: "border-box",
-    boxShadow: "0 24px 70px rgba(0,0,0,0.36)",
+    padding: "22px",
+    color: "#ffffff",
+    boxShadow: "0 24px 80px rgba(0,0,0,0.34)",
     backdropFilter: "blur(12px)",
-    justifySelf: "end",
-  },
-  formHeader: {
-    marginBottom: "18px",
+    boxSizing: "border-box",
   },
   formTitle: {
     margin: 0,
-    fontSize: "28px",
+    fontSize: "30px",
+    lineHeight: 1.05,
     fontWeight: 900,
-    lineHeight: 1.1,
+    letterSpacing: "-0.03em",
   },
   formSubtitle: {
-    marginTop: "8px",
-    marginBottom: 0,
-    color: "rgba(255,255,255,0.72)",
-    fontSize: "14px",
+    margin: "10px 0 0 0",
+    color: "rgba(255,255,255,0.78)",
     lineHeight: 1.55,
+    fontSize: "14px",
   },
-  field: {
-    marginBottom: "18px",
+  fieldGroup: {
+    marginTop: "18px",
   },
   label: {
     display: "block",
-    marginBottom: "8px",
-    color: "rgba(255,255,255,0.96)",
-    fontSize: "14px",
+    fontSize: "15px",
+    marginBottom: "10px",
+    color: "rgba(255,255,255,0.95)",
     fontWeight: 800,
   },
   input: {
     width: "100%",
-    padding: "15px 16px",
+    padding: "16px 18px",
     borderRadius: "16px",
-    border: "1px solid rgba(255,255,255,0.10)",
+    border: "1px solid rgba(255,255,255,0.12)",
     background: "rgba(255,255,255,0.07)",
-    color: "#fff",
-    fontSize: "16px",
+    color: "#ffffff",
+    fontSize: "17px",
     outline: "none",
     boxSizing: "border-box",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
   },
   option: {
-    color: "#111",
+    color: "#111111",
   },
   secondaryButton: {
     width: "100%",
-    marginTop: "10px",
-    padding: "13px 16px",
+    padding: "14px 16px",
     borderRadius: "14px",
-    border: "1px solid rgba(255,255,255,0.10)",
+    border: "1px solid rgba(255,255,255,0.12)",
     background: "rgba(255,255,255,0.07)",
-    color: "#fff",
+    color: "#ffffff",
     fontSize: "14px",
     fontWeight: 800,
     boxSizing: "border-box",
+    marginTop: "10px",
   },
   timeGrid: {
     display: "grid",
@@ -613,65 +608,70 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "12px",
   },
   timeButton: {
-    minHeight: "96px",
-    padding: "14px 12px",
+    minHeight: "102px",
+    padding: "14px",
     borderRadius: "18px",
-    fontSize: "15px",
+    color: "#ffffff",
+    fontSize: "16px",
     fontWeight: 900,
-    color: "#fff",
-    lineHeight: 1.3,
+    cursor: "pointer",
+    lineHeight: 1.35,
   },
   timeButtonActive: {
-    border: "2px solid #7CFF5B",
-    background: "rgba(124,255,91,0.16)",
-    boxShadow: "0 0 0 1px rgba(124,255,91,0.06) inset",
+    border: "2px solid #92ff68",
+    background:
+      "linear-gradient(180deg, rgba(146,255,104,0.18), rgba(146,255,104,0.08))",
+    boxShadow: "0 0 0 1px rgba(146,255,104,0.06) inset",
   },
   timeButtonInactive: {
-    border: "1px solid rgba(255,255,255,0.10)",
-    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.05)",
   },
   primaryButton: {
     width: "100%",
-    padding: "16px 18px",
+    marginTop: "18px",
+    padding: "17px 18px",
     borderRadius: "16px",
     border: "none",
-    background: "linear-gradient(180deg, #96ff6c 0%, #7CFF5B 100%)",
-    color: "#111",
-    fontSize: "18px",
+    background: "linear-gradient(180deg, #9dff73 0%, #7cff5b 100%)",
+    color: "#111111",
+    fontSize: "19px",
     fontWeight: 900,
     boxSizing: "border-box",
-    boxShadow: "0 14px 34px rgba(124,255,91,0.18)",
+    boxShadow: "0 14px 30px rgba(124,255,91,0.20)",
   },
   status: {
     marginTop: "14px",
-    fontSize: "13px",
-    color: "rgba(255,255,255,0.74)",
+    color: "rgba(255,255,255,0.84)",
+    fontSize: "14px",
     lineHeight: 1.5,
   },
   error: {
     marginTop: "14px",
-    fontSize: "14px",
-    color: "#ff9b9b",
+    color: "#f9a8a8",
+    fontSize: "15px",
     lineHeight: 1.5,
   },
   resultCard: {
     marginTop: "22px",
     padding: "18px",
-    borderRadius: "18px",
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "20px",
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06))",
+    border: "1px solid rgba(255,255,255,0.09)",
   },
   resultHeader: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "flex-end",
     gap: "12px",
-    marginBottom: "18px",
+    alignItems: "stretch",
   },
   resultLabel: {
-    fontSize: "13px",
-    color: "rgba(255,255,255,0.68)",
-    marginBottom: "4px",
+    fontSize: "12px",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    color: "rgba(255,255,255,0.60)",
+    marginBottom: "6px",
   },
   resultPrice: {
     fontSize: "34px",
@@ -679,20 +679,23 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1,
   },
   resultDistance: {
-    padding: "8px 12px",
-    borderRadius: "999px",
-    background: "rgba(124,255,91,0.14)",
-    border: "1px solid rgba(124,255,91,0.20)",
-    color: "#cfffbe",
-    fontSize: "13px",
-    fontWeight: 800,
-    whiteSpace: "nowrap",
+    minWidth: "120px",
+    background: "linear-gradient(180deg, #a6ff8d 0%, #7cff5b 100%)",
+    borderRadius: "16px",
+    padding: "14px 16px",
+    color: "#111111",
+    alignSelf: "stretch",
+    fontSize: "22px",
+    fontWeight: 900,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   resultGrid: {
+    marginTop: "16px",
     display: "grid",
+    gap: "10px",
     gridTemplateColumns: "1fr 1fr",
-    gap: "12px",
-    marginBottom: "16px",
   },
   resultItem: {
     padding: "12px",
@@ -715,20 +718,21 @@ const styles: Record<string, React.CSSProperties> = {
   },
   whatsAppButton: {
     width: "100%",
-    padding: "15px 16px",
-    borderRadius: "15px",
+    padding: "16px 18px",
+    borderRadius: "16px",
     border: "none",
-    background: "linear-gradient(180deg, #2dde72 0%, #25D366 100%)",
-    color: "#fff",
+    background: "#25D366",
+    color: "#ffffff",
     fontSize: "17px",
     fontWeight: 900,
     cursor: "pointer",
     boxSizing: "border-box",
+    marginTop: "18px",
   },
   smallText: {
-    marginTop: "10px",
+    marginTop: "12px",
     fontSize: "12px",
     color: "rgba(255,255,255,0.62)",
-    lineHeight: 1.55,
+    lineHeight: 1.65,
   },
 };
