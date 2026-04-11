@@ -205,266 +205,245 @@ Kierowca weryfikuje trasę i cenę przez link systemowy.`;
 
   return (
     <main style={styles.page}>
-      <div style={styles.overlay}>
-        <section style={styles.shell}>
-          <div style={styles.heroCard}>
-            <div style={styles.badge}>Prywatny przejazd • szybka wycena</div>
+      <div style={styles.pageOverlay} />
 
-            <h1 style={styles.title}>KievoTaxi</h1>
+      <section style={styles.shell}>
+        <div style={styles.heroCard}>
+          <img
+            src="/toyota-hero.jpg"
+            alt="KievoTaxi"
+            style={styles.heroImage}
+          />
 
-            <p style={styles.subtitle}>
-              Prosta wycena bez dzwonienia i bez zgadywania ceny. Podaj trasę,
-              wybierz czas odbioru i od razu zobacz koszt przejazdu.
+          <div style={styles.heroOverlay}>
+            <div style={styles.heroBadge}>Prywatny przejazd • szybka wycena</div>
+
+            <h1 style={styles.heroTitle}>
+              Twój prywatny przejazd.
+              <br />
+              Bez komplikacji.
+            </h1>
+
+            <p style={styles.heroSubtitle}>
+              Stała cena. Bez niespodzianek.
             </p>
 
-            <div style={styles.whyBox}>
-              <div style={styles.whyItem}>
-                <span style={styles.whyDot} />
-                <span>Jasna wycena przed zamówieniem</span>
-              </div>
-              <div style={styles.whyItem}>
-                <span style={styles.whyDot} />
-                <span>Kontakt przez WhatsApp po jednym kliknięciu</span>
-              </div>
-              <div style={styles.whyItem}>
-                <span style={styles.whyDot} />
-                <span>Trasa i cena weryfikowane systemowo</span>
-              </div>
+            <div style={styles.heroList}>
+              <div style={styles.heroListItem}>✔ Komfortowy i sprawdzony kierowca</div>
+              <div style={styles.heroListItem}>✔ Przejrzysta cena przed startem</div>
+              <div style={styles.heroListItem}>✔ Bezpieczny przejazd o każdej porze</div>
             </div>
           </div>
+        </div>
 
-          <section style={styles.formCard}>
-            <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>Oblicz cenę przejazdu</h2>
-              <p style={styles.sectionText}>
-                Wpisz dokładny adres startowy i docelowy, żeby wycena była
-                możliwie precyzyjna.
-              </p>
-            </div>
+        <div style={styles.formCard}>
+          <div style={styles.formHeader}>
+            <h2 style={styles.formTitle}>Oblicz cenę przejazdu</h2>
+            <p style={styles.formSubtitle}>
+              Wpisz dokładny adres startowy i docelowy, żeby wycena była możliwie
+              precyzyjna.
+            </p>
+          </div>
 
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Adres startowy</label>
-              <input
-                type="text"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-                placeholder="np. Rzeszów, ul. Rejtana 23"
-                autoComplete="off"
-                spellCheck={false}
-                style={styles.input}
-              />
+          <div style={styles.field}>
+            <label style={styles.label}>Adres startowy</label>
+            <input
+              type="text"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              placeholder="np. Rzeszów, ul. Rejtana 23"
+              autoComplete="off"
+              spellCheck={false}
+              style={styles.input}
+            />
+            <button
+              type="button"
+              onClick={handleUseMyLocation}
+              disabled={locating}
+              style={{
+                ...styles.secondaryButton,
+                opacity: locating ? 0.75 : 1,
+                cursor: locating ? "default" : "pointer",
+              }}
+            >
+              {locating ? "Pobieranie lokalizacji..." : "📍 Użyj mojej lokalizacji"}
+            </button>
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Adres docelowy</label>
+            <input
+              type="text"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="np. Lotnisko Kraków Balice"
+              autoComplete="off"
+              spellCheck={false}
+              style={styles.input}
+            />
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Liczba osób</label>
+            <select
+              value={peopleCount}
+              onChange={(e) => setPeopleCount(e.target.value)}
+              style={styles.input}
+            >
+              <option value="1" style={styles.option}>
+                1 osoba
+              </option>
+              <option value="2" style={styles.option}>
+                2 osoby
+              </option>
+              <option value="3" style={styles.option}>
+                3 osoby
+              </option>
+              <option value="4" style={styles.option}>
+                4 osoby
+              </option>
+            </select>
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Czas odbioru</label>
+
+            <div style={styles.timeGrid}>
+              <button
+                type="button"
+                onClick={() => {
+                  setRideTimeType("now");
+                  setRideTime("");
+                  setError("");
+                }}
+                style={{
+                  ...styles.timeButton,
+                  ...(rideTimeType === "now"
+                    ? styles.timeButtonActive
+                    : styles.timeButtonInactive),
+                }}
+              >
+                Jak najszybciej
+              </button>
 
               <button
                 type="button"
-                onClick={handleUseMyLocation}
-                disabled={locating}
+                onClick={() => {
+                  setRideTimeType("later");
+                  setError("");
+                }}
                 style={{
-                  ...styles.secondaryButton,
-                  opacity: locating ? 0.75 : 1,
-                  cursor: locating ? "default" : "pointer",
+                  ...styles.timeButton,
+                  ...(rideTimeType === "later"
+                    ? styles.timeButtonActive
+                    : styles.timeButtonInactive),
                 }}
               >
-                {locating ? "Pobieranie lokalizacji..." : "📍 Użyj mojej lokalizacji"}
+                Na konkretną godzinę
               </button>
             </div>
 
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Adres docelowy</label>
+            {rideTimeType === "later" && (
               <input
                 type="text"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                placeholder="np. Lotnisko Kraków Balice"
+                value={rideTime}
+                onChange={(e) => setRideTime(e.target.value)}
+                placeholder="np. 21:30"
                 autoComplete="off"
                 spellCheck={false}
-                style={styles.input}
+                style={{ ...styles.input, marginTop: "12px" }}
               />
-            </div>
-
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Liczba osób</label>
-              <select
-                value={peopleCount}
-                onChange={(e) => setPeopleCount(e.target.value)}
-                style={styles.input}
-              >
-                <option value="1" style={styles.selectOption}>
-                  1 osoba
-                </option>
-                <option value="2" style={styles.selectOption}>
-                  2 osoby
-                </option>
-                <option value="3" style={styles.selectOption}>
-                  3 osoby
-                </option>
-                <option value="4" style={styles.selectOption}>
-                  4 osoby
-                </option>
-              </select>
-            </div>
-
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Czas odbioru</label>
-
-              <div style={styles.timeButtons}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRideTimeType("now");
-                    setRideTime("");
-                    setError("");
-                  }}
-                  style={{
-                    ...styles.timeButton,
-                    border:
-                      rideTimeType === "now"
-                        ? "2px solid #7cff5b"
-                        : "1px solid rgba(255,255,255,0.14)",
-                    background:
-                      rideTimeType === "now"
-                        ? "linear-gradient(180deg, rgba(124,255,91,0.22), rgba(124,255,91,0.10))"
-                        : "rgba(255,255,255,0.05)",
-                    boxShadow:
-                      rideTimeType === "now"
-                        ? "0 0 0 1px rgba(124,255,91,0.12) inset"
-                        : "none",
-                  }}
-                >
-                  Jak najszybciej
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRideTimeType("later");
-                    setRideTime("");
-                    setError("");
-                  }}
-                  style={{
-                    ...styles.timeButton,
-                    border:
-                      rideTimeType === "later"
-                        ? "2px solid #7cff5b"
-                        : "1px solid rgba(255,255,255,0.14)",
-                    background:
-                      rideTimeType === "later"
-                        ? "linear-gradient(180deg, rgba(124,255,91,0.22), rgba(124,255,91,0.10))"
-                        : "rgba(255,255,255,0.05)",
-                    boxShadow:
-                      rideTimeType === "later"
-                        ? "0 0 0 1px rgba(124,255,91,0.12) inset"
-                        : "none",
-                  }}
-                >
-                  Na konkretną godzinę
-                </button>
-              </div>
-
-              {rideTimeType === "later" && (
-                <input
-                  type="text"
-                  value={rideTime}
-                  onChange={(e) => setRideTime(e.target.value)}
-                  placeholder="np. 21:30"
-                  autoComplete="off"
-                  spellCheck={false}
-                  style={{ ...styles.input, marginTop: "12px" }}
-                />
-              )}
-            </div>
-
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Imię</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="np. Adam"
-                autoComplete="off"
-                spellCheck={false}
-                style={styles.input}
-              />
-            </div>
-
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Numer telefonu</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="np. 700 111 222"
-                autoComplete="off"
-                spellCheck={false}
-                style={styles.input}
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleQuote}
-              disabled={loading || locating}
-              style={{
-                ...styles.primaryButton,
-                opacity: loading || locating ? 0.75 : 1,
-                cursor: loading || locating ? "default" : "pointer",
-              }}
-            >
-              {loading ? "Liczenie..." : "Oblicz cenę"}
-            </button>
-
-            {statusText && <div style={styles.status}>{statusText}</div>}
-            {error && <div style={styles.error}>{error}</div>}
-
-            {(distance || price) && !error && (
-              <div style={styles.resultCard}>
-                <div style={styles.resultTop}>
-                  <div>
-                    <div style={styles.resultSmall}>Dystans</div>
-                    <div style={styles.resultValue}>{distance}</div>
-                  </div>
-
-                  <div style={styles.priceTag}>
-                    <div style={styles.resultSmallDark}>Cena</div>
-                    <div style={styles.priceValue}>{price}</div>
-                  </div>
-                </div>
-
-                <div style={styles.resultDetails}>
-                  <div style={styles.resultRow}>
-                    <span style={styles.resultLabel}>Odbiór</span>
-                    <strong>
-                      {rideTimeType === "now" ? "Jak najszybciej" : rideTime}
-                    </strong>
-                  </div>
-
-                  <div style={styles.resultRow}>
-                    <span style={styles.resultLabel}>Liczba osób</span>
-                    <strong>{peopleCount}</strong>
-                  </div>
-
-                  <div style={styles.resultRow}>
-                    <span style={styles.resultLabel}>Kod wyceny</span>
-                    <strong>{quoteCode}</strong>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleWhatsAppOrder}
-                  style={styles.whatsAppButton}
-                >
-                  Zamów przejazd
-                </button>
-
-                <div style={styles.smallText}>
-                  Po kliknięciu otworzy się WhatsApp z gotową wiadomością.
-                  Kierowca potwierdza kurs na podstawie kodu i linku systemowego.
-                </div>
-              </div>
             )}
-          </section>
-        </section>
-      </div>
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Imię</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="np. Julia"
+              autoComplete="off"
+              spellCheck={false}
+              style={styles.input}
+            />
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Numer telefonu</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="np. 700 111 222"
+              autoComplete="off"
+              spellCheck={false}
+              style={styles.input}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleQuote}
+            disabled={loading || locating}
+            style={{
+              ...styles.primaryButton,
+              opacity: loading || locating ? 0.75 : 1,
+              cursor: loading || locating ? "default" : "pointer",
+            }}
+          >
+            {loading ? "Liczenie..." : "Oblicz cenę"}
+          </button>
+
+          {statusText && <div style={styles.status}>{statusText}</div>}
+          {error && <div style={styles.error}>{error}</div>}
+
+          {(distance || price) && !error && (
+            <div style={styles.resultCard}>
+              <div style={styles.resultHeader}>
+                <div>
+                  <div style={styles.resultLabel}>Szacowana cena</div>
+                  <div style={styles.resultPrice}>{price}</div>
+                </div>
+
+                <div style={styles.resultDistance}>{distance}</div>
+              </div>
+
+              <div style={styles.resultGrid}>
+                <div style={styles.resultItem}>
+                  <span style={styles.resultItemLabel}>Odbiór</span>
+                  <strong>
+                    {rideTimeType === "now" ? "Jak najszybciej" : rideTime}
+                  </strong>
+                </div>
+
+                <div style={styles.resultItem}>
+                  <span style={styles.resultItemLabel}>Liczba osób</span>
+                  <strong>{peopleCount}</strong>
+                </div>
+
+                <div style={styles.resultItemWide}>
+                  <span style={styles.resultItemLabel}>Kod wyceny</span>
+                  <strong>{quoteCode}</strong>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleWhatsAppOrder}
+                style={styles.whatsAppButton}
+              >
+                Zamów przejazd
+              </button>
+
+              <div style={styles.smallText}>
+                Po kliknięciu otworzy się WhatsApp z gotową wiadomością.
+                Kierowca potwierdza kurs na podstawie kodu i linku systemowego.
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
@@ -472,257 +451,284 @@ Kierowca weryfikuje trasę i cenę przez link systemowy.`;
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
-    backgroundColor: "#050505",
-    backgroundImage:
-      "linear-gradient(rgba(6,6,6,0.70), rgba(6,6,6,0.88)), url('/toyota.jpg')",
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    backgroundAttachment: "fixed",
+    position: "relative",
+    background: "#040404",
+    overflow: "hidden",
   },
-  overlay: {
-    minHeight: "100vh",
-    padding: "28px 16px",
-    boxSizing: "border-box",
+  pageOverlay: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "radial-gradient(circle at top left, rgba(124,255,91,0.08), transparent 28%), linear-gradient(180deg, rgba(0,0,0,0.40), rgba(0,0,0,0.80))",
   },
   shell: {
+    position: "relative",
+    zIndex: 1,
     width: "100%",
-    maxWidth: "1080px",
+    maxWidth: "1000px",
     margin: "0 auto",
+    padding: "28px 16px 40px",
+    boxSizing: "border-box",
     display: "grid",
-    gridTemplateColumns: "1.1fr 0.95fr",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
     gap: "24px",
-    alignItems: "start",
+    alignItems: "stretch",
   },
   heroCard: {
-    background: "linear-gradient(180deg, rgba(0,0,0,0.56), rgba(0,0,0,0.36))",
+    position: "relative",
+    minHeight: "640px",
+    maxWidth: "420px",
+    width: "100%",
+    borderRadius: "24px",
+    overflow: "hidden",
     border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "28px",
-    padding: "34px",
-    color: "#ffffff",
-    boxShadow: "0 20px 80px rgba(0,0,0,0.30)",
-    backdropFilter: "blur(8px)",
-    minHeight: "220px",
+    boxShadow: "0 24px 70px rgba(0,0,0,0.40)",
+    justifySelf: "start",
   },
-  badge: {
+  heroImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    display: "block",
+  },
+  heroOverlay: {
+    position: "absolute",
+    inset: 0,
+    padding: "28px",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-start",
+    background:
+      "linear-gradient(180deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.58) 45%, rgba(0,0,0,0.78) 100%)",
+    color: "#fff",
+    boxSizing: "border-box",
+  },
+  heroBadge: {
+    alignSelf: "flex-start",
     display: "inline-block",
-    padding: "8px 12px",
+    padding: "9px 14px",
     borderRadius: "999px",
-    background: "rgba(124,255,91,0.10)",
-    border: "1px solid rgba(124,255,91,0.20)",
-    color: "#b7ffaa",
+    background: "rgba(124,255,91,0.12)",
+    border: "1px solid rgba(124,255,91,0.22)",
+    color: "#d1ffc4",
     fontSize: "13px",
-    fontWeight: 700,
+    fontWeight: 800,
     marginBottom: "18px",
   },
-  title: {
+  heroTitle: {
     margin: 0,
-    fontSize: "52px",
-    lineHeight: 1,
+    fontSize: "48px",
+    lineHeight: 0.95,
     letterSpacing: "-0.03em",
-    marginBottom: "14px",
+    fontWeight: 900,
+    maxWidth: "320px",
   },
-  subtitle: {
-    margin: 0,
-    fontSize: "18px",
-    lineHeight: 1.65,
-    color: "rgba(255,255,255,0.86)",
-    maxWidth: "620px",
+  heroSubtitle: {
+    marginTop: "18px",
+    marginBottom: "22px",
+    fontSize: "19px",
+    lineHeight: 1.4,
+    color: "rgba(255,255,255,0.92)",
+    fontWeight: 700,
   },
-  whyBox: {
-    marginTop: "26px",
+  heroList: {
     display: "grid",
-    gap: "12px",
-  },
-  whyItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    color: "rgba(255,255,255,0.88)",
+    gap: "14px",
     fontSize: "15px",
+    lineHeight: 1.55,
+    color: "rgba(255,255,255,0.94)",
+    maxWidth: "320px",
   },
-  whyDot: {
-    width: "10px",
-    height: "10px",
-    borderRadius: "999px",
-    background: "#7cff5b",
-    boxShadow: "0 0 16px rgba(124,255,91,0.55)",
-    flexShrink: 0,
+  heroListItem: {
+    textShadow: "0 2px 12px rgba(0,0,0,0.35)",
   },
   formCard: {
     width: "100%",
-    background: "rgba(0,0,0,0.74)",
+    maxWidth: "520px",
+    background: "rgba(12,12,12,0.78)",
     border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "28px",
-    padding: "28px",
-    color: "#ffffff",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
-    backdropFilter: "blur(10px)",
+    borderRadius: "24px",
+    padding: "24px",
+    color: "#fff",
     boxSizing: "border-box",
+    boxShadow: "0 24px 70px rgba(0,0,0,0.36)",
+    backdropFilter: "blur(12px)",
+    justifySelf: "end",
   },
-  sectionHeader: {
-    marginBottom: "20px",
+  formHeader: {
+    marginBottom: "18px",
   },
-  sectionTitle: {
+  formTitle: {
     margin: 0,
     fontSize: "28px",
-    marginBottom: "8px",
+    fontWeight: 900,
+    lineHeight: 1.1,
   },
-  sectionText: {
-    margin: 0,
+  formSubtitle: {
+    marginTop: "8px",
+    marginBottom: 0,
     color: "rgba(255,255,255,0.72)",
-    lineHeight: 1.6,
     fontSize: "14px",
+    lineHeight: 1.55,
   },
-  fieldGroup: {
+  field: {
     marginBottom: "18px",
   },
   label: {
     display: "block",
-    fontSize: "15px",
-    marginBottom: "10px",
-    color: "rgba(255,255,255,0.95)",
-    fontWeight: 700,
+    marginBottom: "8px",
+    color: "rgba(255,255,255,0.96)",
+    fontSize: "14px",
+    fontWeight: 800,
   },
   input: {
     width: "100%",
-    padding: "16px 18px",
+    padding: "15px 16px",
     borderRadius: "16px",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "#ffffff",
-    fontSize: "17px",
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.07)",
+    color: "#fff",
+    fontSize: "16px",
     outline: "none",
     boxSizing: "border-box",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
   },
-  selectOption: {
-    color: "#111111",
+  option: {
+    color: "#111",
   },
   secondaryButton: {
     width: "100%",
+    marginTop: "10px",
     padding: "13px 16px",
     borderRadius: "14px",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "#ffffff",
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.07)",
+    color: "#fff",
     fontSize: "14px",
-    fontWeight: 700,
-    boxSizing: "border-box",
-  },
-  primaryButton: {
-    width: "100%",
-    padding: "17px 18px",
-    borderRadius: "16px",
-    border: "none",
-    background: "linear-gradient(180deg, #8fff6f 0%, #7cff5b 100%)",
-    color: "#111111",
-    fontSize: "19px",
     fontWeight: 800,
     boxSizing: "border-box",
-    boxShadow: "0 14px 30px rgba(124,255,91,0.22)",
   },
-  timeButtons: {
+  timeGrid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: "12px",
   },
   timeButton: {
-    minHeight: "108px",
-    padding: "14px",
+    minHeight: "96px",
+    padding: "14px 12px",
     borderRadius: "18px",
-    color: "#ffffff",
-    fontSize: "16px",
-    fontWeight: 800,
-    cursor: "pointer",
-    lineHeight: 1.35,
+    fontSize: "15px",
+    fontWeight: 900,
+    color: "#fff",
+    lineHeight: 1.3,
+  },
+  timeButtonActive: {
+    border: "2px solid #7CFF5B",
+    background: "rgba(124,255,91,0.16)",
+    boxShadow: "0 0 0 1px rgba(124,255,91,0.06) inset",
+  },
+  timeButtonInactive: {
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.06)",
+  },
+  primaryButton: {
+    width: "100%",
+    padding: "16px 18px",
+    borderRadius: "16px",
+    border: "none",
+    background: "linear-gradient(180deg, #96ff6c 0%, #7CFF5B 100%)",
+    color: "#111",
+    fontSize: "18px",
+    fontWeight: 900,
+    boxSizing: "border-box",
+    boxShadow: "0 14px 34px rgba(124,255,91,0.18)",
   },
   status: {
     marginTop: "14px",
-    color: "rgba(255,255,255,0.82)",
-    fontSize: "14px",
+    fontSize: "13px",
+    color: "rgba(255,255,255,0.74)",
     lineHeight: 1.5,
   },
   error: {
     marginTop: "14px",
-    color: "#f9a8a8",
-    fontSize: "15px",
+    fontSize: "14px",
+    color: "#ff9b9b",
     lineHeight: 1.5,
   },
   resultCard: {
     marginTop: "22px",
     padding: "18px",
-    borderRadius: "20px",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05))",
+    borderRadius: "18px",
+    background: "rgba(255,255,255,0.08)",
     border: "1px solid rgba(255,255,255,0.08)",
   },
-  resultTop: {
+  resultHeader: {
     display: "flex",
     justifyContent: "space-between",
+    alignItems: "flex-end",
     gap: "12px",
-    alignItems: "stretch",
-  },
-  resultSmall: {
-    fontSize: "12px",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    color: "rgba(255,255,255,0.60)",
-    marginBottom: "6px",
-  },
-  resultSmallDark: {
-    fontSize: "12px",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-    color: "rgba(0,0,0,0.55)",
-    marginBottom: "6px",
-  },
-  resultValue: {
-    fontSize: "24px",
-    fontWeight: 800,
-  },
-  priceTag: {
-    minWidth: "132px",
-    background: "linear-gradient(180deg, #a6ff8d 0%, #7cff5b 100%)",
-    borderRadius: "16px",
-    padding: "12px 14px",
-    color: "#111111",
-    alignSelf: "stretch",
-  },
-  priceValue: {
-    fontSize: "26px",
-    fontWeight: 900,
-  },
-  resultDetails: {
-    marginTop: "16px",
-    display: "grid",
-    gap: "10px",
-  },
-  resultRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "16px",
-    lineHeight: 1.5,
-    fontSize: "15px",
+    marginBottom: "18px",
   },
   resultLabel: {
+    fontSize: "13px",
     color: "rgba(255,255,255,0.68)",
+    marginBottom: "4px",
+  },
+  resultPrice: {
+    fontSize: "34px",
+    fontWeight: 900,
+    lineHeight: 1,
+  },
+  resultDistance: {
+    padding: "8px 12px",
+    borderRadius: "999px",
+    background: "rgba(124,255,91,0.14)",
+    border: "1px solid rgba(124,255,91,0.20)",
+    color: "#cfffbe",
+    fontSize: "13px",
+    fontWeight: 800,
+    whiteSpace: "nowrap",
+  },
+  resultGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "12px",
+    marginBottom: "16px",
+  },
+  resultItem: {
+    padding: "12px",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.05)",
+    lineHeight: 1.45,
+  },
+  resultItemWide: {
+    gridColumn: "1 / -1",
+    padding: "12px",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.05)",
+    lineHeight: 1.45,
+  },
+  resultItemLabel: {
+    display: "block",
+    fontSize: "12px",
+    color: "rgba(255,255,255,0.64)",
+    marginBottom: "4px",
   },
   whatsAppButton: {
     width: "100%",
-    padding: "16px 18px",
-    borderRadius: "16px",
+    padding: "15px 16px",
+    borderRadius: "15px",
     border: "none",
-    background: "#25D366",
-    color: "#ffffff",
+    background: "linear-gradient(180deg, #2dde72 0%, #25D366 100%)",
+    color: "#fff",
     fontSize: "17px",
-    fontWeight: 800,
+    fontWeight: 900,
     cursor: "pointer",
     boxSizing: "border-box",
-    marginTop: "18px",
   },
   smallText: {
-    marginTop: "12px",
+    marginTop: "10px",
     fontSize: "12px",
     color: "rgba(255,255,255,0.62)",
-    lineHeight: 1.65,
+    lineHeight: 1.55,
   },
 };
