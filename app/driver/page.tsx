@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
+type OrderStatus =
+  | "pending"
+  | "accepted"
+  | "on_route"
+  | "completed"
+  | "cancelled";
+
 type Order = {
   id: string;
   created_at: string;
@@ -12,7 +19,7 @@ type Order = {
   to_address: string;
   people_count: number;
   pickup_time: string;
-  status: string;
+  status: OrderStatus;
   eta: number | null;
   quote_code: string | null;
   price: number | null;
@@ -68,46 +75,61 @@ export default function DriverPage() {
     try {
       setBusyId(id);
 
-      const { error } = await supabase.from("orders").update(updates).eq("id", id);
+      const { error } = await supabase
+        .from("orders")
+        .update(updates)
+        .eq("id", id);
 
       if (error) {
         console.error("Update order error:", error);
         alert("Nie udało się zaktualizować kursu.");
+        return;
       }
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === id ? { ...order, ...updates } : order
+        )
+      );
     } finally {
       setBusyId(null);
     }
   }
 
   function formatTime(value: string) {
-  try {
-    return new Date(value).toLocaleString("pl-PL", {
-      timeZone: "Europe/Warsaw",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  } catch {
-    return value;
+    try {
+      return new Date(value).toLocaleString("pl-PL", {
+        timeZone: "Europe/Warsaw",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return value;
+    }
   }
-}
-  function statusLabel(status: string) {
-    if (status === "accepted") return "Zaakceptowane";
-    if (status === "on_route") return "W drodze";
-    if (status === "completed") return "Zakończone";
-    if (status === "cancelled") return "Anulowane";
+
+  function statusLabel(order: Order) {
+    if (order.status === "accepted") return "Zaakceptowane";
+    if (order.status === "on_route" && order.eta)
+      return `Kierowca jedzie • ${order.eta} min`;
+    if (order.status === "completed") return "Zakończone";
+    if (order.status === "cancelled") return "Anulowane";
     return "Nowe";
   }
 
-  function statusStyle(status: string) {
+  function statusStyle(status: OrderStatus) {
     if (status === "accepted") return styles.statusAccepted;
     if (status === "on_route") return styles.statusOnRoute;
     if (status === "completed") return styles.statusCompleted;
     if (status === "cancelled") return styles.statusCancelled;
     return styles.statusPending;
+  }
+
+  function canShowEtaSection(status: OrderStatus) {
+    return status !== "cancelled" && status !== "completed";
   }
 
   return (
@@ -147,8 +169,7 @@ export default function DriverPage() {
                         ...statusStyle(order.status),
                       }}
                     >
-                      {statusLabel(order.status)}
-                      {order.eta ? ` • ${order.eta} min` : ""}
+                      {statusLabel(order)}
                     </div>
                   </div>
 
@@ -200,16 +221,16 @@ export default function DriverPage() {
                   <div style={styles.actionGrid}>
                     <button
                       type="button"
-                      disabled={isBusy}
+                      disabled={isBusy || order.status === "accepted"}
                       onClick={() =>
                         updateOrder(order.id, {
                           status: "accepted",
-                          eta: order.eta ?? 5,
+                          eta: null,
                         })
                       }
                       style={{
                         ...styles.primaryButton,
-                        opacity: isBusy ? 0.6 : 1,
+                        opacity: isBusy || order.status === "accepted" ? 0.6 : 1,
                       }}
                     >
                       Akceptuj
@@ -217,15 +238,21 @@ export default function DriverPage() {
 
                     <button
                       type="button"
-                      disabled={isBusy}
+                      disabled={isBusy || order.status === "completed" || order.status === "cancelled"}
                       onClick={() =>
                         updateOrder(order.id, {
                           status: "on_route",
+                          eta: order.eta ?? 5,
                         })
                       }
                       style={{
                         ...styles.secondaryButton,
-                        opacity: isBusy ? 0.6 : 1,
+                        opacity:
+                          isBusy ||
+                          order.status === "completed" ||
+                          order.status === "cancelled"
+                            ? 0.6
+                            : 1,
                       }}
                     >
                       Jadę
@@ -233,15 +260,16 @@ export default function DriverPage() {
 
                     <button
                       type="button"
-                      disabled={isBusy}
+                      disabled={isBusy || order.status === "completed"}
                       onClick={() =>
                         updateOrder(order.id, {
                           status: "completed",
+                          eta: null,
                         })
                       }
                       style={{
                         ...styles.secondaryButton,
-                        opacity: isBusy ? 0.6 : 1,
+                        opacity: isBusy || order.status === "completed" ? 0.6 : 1,
                       }}
                     >
                       Zakończ
@@ -249,46 +277,52 @@ export default function DriverPage() {
 
                     <button
                       type="button"
-                      disabled={isBusy}
+                      disabled={isBusy || order.status === "cancelled"}
                       onClick={() =>
                         updateOrder(order.id, {
                           status: "cancelled",
+                          eta: null,
                         })
                       }
                       style={{
                         ...styles.cancelButton,
-                        opacity: isBusy ? 0.6 : 1,
+                        opacity: isBusy || order.status === "cancelled" ? 0.6 : 1,
                       }}
                     >
                       Odrzuć
                     </button>
                   </div>
 
-                  <div style={styles.etaSection}>
-                    <div style={styles.etaTitle}>Ustaw ETA</div>
-                    <div style={styles.etaGrid}>
-                      {ETA_OPTIONS.map((minutes) => (
-                        <button
-                          key={minutes}
-                          type="button"
-                          disabled={isBusy}
-                          onClick={() =>
-                            updateOrder(order.id, {
-                              status: "accepted",
-                              eta: minutes,
-                            })
-                          }
-                          style={{
-                            ...styles.etaButton,
-                            ...(order.eta === minutes ? styles.etaButtonActive : {}),
-                            opacity: isBusy ? 0.6 : 1,
-                          }}
-                        >
-                          {minutes} min
-                        </button>
-                      ))}
+                  {canShowEtaSection(order.status) && (
+                    <div style={styles.etaSection}>
+                      <div style={styles.etaTitle}>Ustaw ETA</div>
+                      <div style={styles.etaGrid}>
+                        {ETA_OPTIONS.map((minutes) => (
+                          <button
+                            key={minutes}
+                            type="button"
+                            disabled={isBusy}
+                            onClick={() =>
+                              updateOrder(order.id, {
+                                status: "on_route",
+                                eta: minutes,
+                              })
+                            }
+                            style={{
+                              ...styles.etaButton,
+                              ...(order.status === "on_route" &&
+                              order.eta === minutes
+                                ? styles.etaButtonActive
+                                : {}),
+                              opacity: isBusy ? 0.6 : 1,
+                            }}
+                          >
+                            {minutes} min
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </article>
               );
             })}
