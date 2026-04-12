@@ -44,11 +44,15 @@ export default function Home() {
       setLocating(true);
 
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
+        navigator.geolocation.getCurrentPosition(
+          resolve, 
+          reject, 
+          {
           enableHighAccuracy: true,
           timeout: 10000,
           maximumAge: 0,
-        });
+        }
+      );
       });
 
       const lat = position.coords.latitude;
