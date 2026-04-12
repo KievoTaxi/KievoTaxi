@@ -16,6 +16,7 @@ export default function Home() {
   const [price, setPrice] = useState("");
   const [quoteCode, setQuoteCode] = useState("");
   const [quoteLink, setQuoteLink] = useState("");
+  const [statusLink, setStatusLink] = useState("");
 
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState("");
@@ -32,63 +33,64 @@ export default function Home() {
   }
 
   async function handleUseMyLocation() {
-  setError("");
-  setStatusText("");
+    setError("");
+    setStatusText("");
 
-  if (!navigator.geolocation) {
-    setError("Ta przeglądarka nie obsługuje lokalizacji.");
-    return;
-  }
-
-  try {
-    setLocating(true);
-
-    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      });
-    });
-
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
-
-    const res = await fetch("/api/quote", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        geocodeOnly: true,
-        lat,
-        lng,
-      }),
-    });
-
-    const data = await res.json().catch(() => null);
-
-    if (!res.ok || data?.error) {
-      setError(data?.error || "Nie udało się pobrać Twojej lokalizacji.");
+    if (!navigator.geolocation) {
+      setError("Ta przeglądarka nie obsługuje lokalizacji.");
       return;
     }
 
-    setFrom(data?.address || `${lat}, ${lng}`);
-    setStatusText("Adres startowy został uzupełniony.");
-  } catch (error) {
-    console.error("Location error:", error);
-    setError("Nie udało się pobrać Twojej lokalizacji.");
-  } finally {
-    setLocating(false);
+    try {
+      setLocating(true);
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      const res = await fetch("/api/quote", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          geocodeOnly: true,
+          lat,
+          lng,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || data?.error) {
+        setError(data?.error || "Nie udało się pobrać Twojej lokalizacji.");
+        return;
+      }
+
+      setFrom(data?.address || `${lat}, ${lng}`);
+      setStatusText("Adres startowy został uzupełniony.");
+    } catch (err) {
+      console.error("Location error:", err);
+      setError("Nie udało się pobrać Twojej lokalizacji.");
+    } finally {
+      setLocating(false);
+    }
   }
-  }
-  
+
   async function handleQuote() {
     setError("");
     setDistance("");
     setPrice("");
     setQuoteCode("");
     setQuoteLink("");
+    setStatusLink("");
     setStatusText("");
 
     if (!from.trim() || !to.trim()) {
@@ -133,6 +135,7 @@ export default function Home() {
           peopleCount,
           rideTimeType,
           rideTime,
+          saveOrder: true,
         }),
       });
 
@@ -144,17 +147,27 @@ export default function Home() {
         return;
       }
 
-      setDistance(`${Number(data.distance).toFixed(1)} km`);
-      setPrice(`${data.price} zł`);
-      setQuoteCode(data.quoteCode);
+      const finalDistance = `${Number(data.distance).toFixed(1)} km`;
+      const finalPrice = `${data.price} zł`;
+      const finalQuoteCode = data.quoteCode;
+
+      setDistance(finalDistance);
+      setPrice(finalPrice);
+      setQuoteCode(finalQuoteCode);
 
       const verifyUrl = `${window.location.origin}/verify?token=${encodeURIComponent(
         data.token
       )}`;
 
+      const passengerStatusUrl = `${window.location.origin}/status?code=${encodeURIComponent(
+        finalQuoteCode
+      )}`;
+
       setQuoteLink(verifyUrl);
+      setStatusLink(passengerStatusUrl);
       setStatusText("Wycena gotowa.");
-    } catch {
+    } catch (err) {
+      console.error("Quote error:", err);
       setError("Coś poszło nie tak. Spróbuj ponownie.");
       setStatusText("");
     } finally {
@@ -162,21 +175,24 @@ export default function Home() {
     }
   }
 
-  async function handleWhatsAppOrder() {
-  if (!distance || !price || !quoteCode || !quoteLink) {
-    setError("Najpierw oblicz cenę.");
-    return;
-  }
+  function handleWhatsAppOrder() {
+    if (!distance || !price || !quoteCode || !quoteLink || !statusLink) {
+      setError("Najpierw oblicz cenę.");
+      return;
+    }
 
-  const pickupTime =
-    rideTimeType === "now" ? "Jak najszybciej" : rideTime.trim();
+    const pickupTime =
+      rideTimeType === "now" ? "Jak najszybciej" : rideTime.trim();
 
-  const cleanPhone = normalizePhone(phone);
+    const cleanPhone = normalizePhone(phone);
 
-  const message = `Dzień dobry, proszę o zamówienie przejazdu.
+    const message = `Dzień dobry, proszę o zamówienie przejazdu.
 
 Kod wyceny:
 ${quoteCode}
+
+Status dla klienta:
+${statusLink}
 
 Link weryfikacyjny:
 ${quoteLink}
@@ -196,13 +212,13 @@ ${from} → ${to}
 Czas odbioru:
 ${pickupTime}
 
-Kierowca weryfikuje trasę i cenę przez link systemowy.`;
+Kierowca potwierdza kurs w systemie.`;
 
-  const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
 
-  setStatusText("Przekierowuję do WhatsApp...");
-  window.location.href = url;
-}
+    setStatusText("Przekierowuję do WhatsApp...");
+    window.location.href = url;
+  }
 
   return (
     <main style={styles.page}>
@@ -424,6 +440,20 @@ Kierowca weryfikuje trasę i cenę przez link systemowy.`;
                   <span style={styles.resultItemLabel}>Kod wyceny</span>
                   <strong>{quoteCode}</strong>
                 </div>
+
+                {statusLink && (
+                  <div style={styles.resultItemWide}>
+                    <span style={styles.resultItemLabel}>Panel pasażera</span>
+                    <a
+                      href={statusLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={styles.resultLink}
+                    >
+                      Otwórz status przejazdu
+                    </a>
+                  </div>
+                )}
               </div>
 
               <button
@@ -716,6 +746,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "12px",
     color: "rgba(255,255,255,0.64)",
     marginBottom: "4px",
+  },
+  resultLink: {
+    color: "#9dff73",
+    textDecoration: "none",
+    fontWeight: 800,
+    wordBreak: "break-word",
   },
   whatsAppButton: {
     width: "100%",
