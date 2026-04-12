@@ -13,9 +13,17 @@ function normalizePhone(value: unknown) {
 }
 
 function normalizePeopleCount(value: unknown) {
-  if (typeof value === "number") return String(value);
-  if (typeof value === "string") return value.trim();
-  return "1";
+  const raw =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+      ? Number(value.trim())
+      : 1;
+
+  if (!Number.isFinite(raw) || raw < 1) return 1;
+  if (raw > 8) return 8;
+
+  return Math.floor(raw);
 }
 
 function calculatePrice(distanceKm: number) {
@@ -68,6 +76,11 @@ async function reverseGeocode(lat: number, lng: number, apiKey: string) {
   }
 
   const data = await res.json();
+
+  if (data?.status && data.status !== "OK") {
+    throw new Error("Nie udało się ustalić adresu.");
+  }
+
   const address = data?.results?.[0]?.formatted_address;
 
   if (!address) {
@@ -85,12 +98,20 @@ function getSupabaseAdmin() {
     return null;
   }
 
-  return createClient(supabaseUrl, serviceRoleKey);
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
+
+    console.log("QUOTE BODY:", body);
+    console.log("SAVE ORDER FLAG:", body?.saveOrder);
 
     const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!mapsApiKey) {
@@ -112,7 +133,6 @@ export async function POST(req: Request) {
       }
 
       const address = await reverseGeocode(lat, lng, mapsApiKey);
-
       return NextResponse.json({ address });
     }
 
@@ -134,10 +154,7 @@ export async function POST(req: Request) {
     }
 
     if (!name) {
-      return NextResponse.json(
-        { error: "Uzupełnij imię." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Uzupełnij imię." }, { status: 400 });
     }
 
     if (!phone) {
@@ -184,6 +201,13 @@ export async function POST(req: Request) {
     const element = distanceData?.rows?.[0]?.elements?.[0];
     const distanceMeters = element?.distance?.value;
 
+    if (distanceData?.status && distanceData.status !== "OK") {
+      return NextResponse.json(
+        { error: "Nie udało się pobrać danych trasy." },
+        { status: 400 }
+      );
+    }
+
     if (
       element?.status !== "OK" ||
       typeof distanceMeters !== "number" ||
@@ -205,7 +229,7 @@ export async function POST(req: Request) {
       to,
       name,
       phone,
-      peopleCount,
+      peopleCount: String(peopleCount),
       rideTimeType,
       rideTime,
       distanceKm,
@@ -216,7 +240,14 @@ export async function POST(req: Request) {
 
     const { token, quoteCode } = createSignedQuote(payload);
 
+    let orderId: string | null = null;
+
     if (saveOrder) {
+      console.log("SUPABASE ENV CHECK:", {
+        hasUrl: !!process.env.SUPABASE_URL,
+        hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      });
+
       const supabase = getSupabaseAdmin();
 
       if (!supabase) {
@@ -226,33 +257,44 @@ export async function POST(req: Request) {
         );
       }
 
-      const pickupTime =
-        rideTimeType === "now" ? "Jak najszybciej" : rideTime;
+      const pickupTime = rideTimeType === "now" ? "Jak najszybciej" : rideTime;
 
-      const { error: insertError } = await supabase.from("orders").insert([
-  {
-    name,
-    phone,
-    from_address: from,
-    to_address: to,
-    people_count: Number(peopleCount),
-    pickup_time: pickupTime,
-    status: "pending",
-    eta: null,
-    quote_code: quoteCode,
-    price,
-    distance_km: distanceKm,
-  },
-]);
+      const { data: insertedOrder, error: insertError } = await supabase
+        .from("orders")
+        .insert([
+          {
+            name,
+            phone,
+            from_address: from,
+            to_address: to,
+            people_count: peopleCount,
+            pickup_time: pickupTime,
+            status: "pending",
+            eta: null,
+            quote_code: quoteCode,
+            price,
+            distance_km: distanceKm,
+          },
+        ])
+        .select("id")
+        .single();
+
+      console.log("ORDER INSERT ERROR:", insertError);
+      console.log("ORDER INSERT DATA:", insertedOrder);
 
       if (insertError) {
         console.error("Order insert error:", insertError);
 
         return NextResponse.json(
-          { error: "Nie udało się zapisać zamówienia." },
+          {
+            error: "Nie udało się zapisać zamówienia.",
+            details: insertError.message,
+          },
           { status: 500 }
         );
       }
+
+      orderId = insertedOrder?.id ?? null;
     }
 
     return NextResponse.json({
@@ -262,6 +304,7 @@ export async function POST(req: Request) {
       quoteCode,
       validUntil: expiresAt,
       orderSaved: saveOrder,
+      orderId,
     });
   } catch (error) {
     console.error("Quote API error:", error);
