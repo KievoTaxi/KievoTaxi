@@ -188,14 +188,8 @@ export default function Home() {
 
     const message = `Dzień dobry, proszę o zamówienie przejazdu.
 
-Kod wyceny:
-${quoteCode}
-
-Status dla klienta:
-${statusLink}
-
-Link weryfikacyjny:
-${quoteLink}
+Kod wyceny: ${quoteCode}
+Status dla klienta: ${statusLink}
 
 Imię:
 ${name}
@@ -211,7 +205,7 @@ ${from} → ${to}
 
 Czas odbioru:
 ${pickupTime}
-
+Link weryfikacyjny: ${quoteLink}
 Kierowca potwierdza kurs w systemie.`;
 
     const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
