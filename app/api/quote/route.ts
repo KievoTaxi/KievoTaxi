@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createSignedQuote } from "../../../lib/quote";
 
 type RideTimeType = "now" | "later";
@@ -8,7 +9,7 @@ function normalizeText(value: unknown) {
 }
 
 function normalizePhone(value: unknown) {
-  return typeof value === "string" ? value.replace(/\s+/g, "").trim() : "";
+  return typeof value === "string" ? value.replace(/\D/g, "").trim() : "";
 }
 
 function normalizePeopleCount(value: unknown) {
@@ -76,6 +77,17 @@ async function reverseGeocode(lat: number, lng: number, apiKey: string) {
   return address;
 }
 
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey);
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
@@ -112,6 +124,7 @@ export async function POST(req: Request) {
     const rideTimeType: RideTimeType =
       body?.rideTimeType === "later" ? "later" : "now";
     const rideTime = normalizeText(body?.rideTime);
+    const saveOrder = body?.saveOrder === true;
 
     if (!from || !to) {
       return NextResponse.json(
@@ -148,14 +161,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const url =
+    const distanceUrl =
       "https://maps.googleapis.com/maps/api/distancematrix/json" +
       `?origins=${encodeURIComponent(from)}` +
       `&destinations=${encodeURIComponent(to)}` +
       `&mode=driving&language=pl&region=pl&units=metric` +
       `&key=${mapsApiKey}`;
 
-    const distanceRes = await fetch(url, {
+    const distanceRes = await fetch(distanceUrl, {
       method: "GET",
       cache: "no-store",
     });
@@ -203,12 +216,49 @@ export async function POST(req: Request) {
 
     const { token, quoteCode } = createSignedQuote(payload);
 
+    if (saveOrder) {
+      const supabase = getSupabaseAdmin();
+
+      if (!supabase) {
+        return NextResponse.json(
+          { error: "Brak SUPABASE_URL lub SUPABASE_SERVICE_ROLE_KEY w env." },
+          { status: 500 }
+        );
+      }
+
+      const pickupTime =
+        rideTimeType === "now" ? "Jak najszybciej" : rideTime;
+
+      const { error: insertError } = await supabase.from("orders").insert([
+        {
+          name,
+          phone,
+          from_address: from,
+          to_address: to,
+          people_count: Number(peopleCount),
+          pickup_time: pickupTime,
+          status: "pending",
+          eta: null,
+        },
+      ]);
+
+      if (insertError) {
+        console.error("Order insert error:", insertError);
+
+        return NextResponse.json(
+          { error: "Nie udało się zapisać zamówienia." },
+          { status: 500 }
+        );
+      }
+    }
+
     return NextResponse.json({
       distance: distanceKm,
       price,
       token,
       quoteCode,
       validUntil: expiresAt,
+      orderSaved: saveOrder,
     });
   } catch (error) {
     console.error("Quote API error:", error);

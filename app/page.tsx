@@ -161,24 +161,59 @@ export default function Home() {
     }
   }
 
-  function handleWhatsAppOrder() {
-    if (!distance || !price || !quoteCode || !quoteLink) {
-      setError("Najpierw oblicz cenę.");
+  async function handleWhatsAppOrder() {
+  if (!distance || !price) {
+    setError("Najpierw oblicz cenę.");
+    return;
+  }
+
+  try {
+    setError("");
+    setStatusText("Zapisuję zamówienie...");
+
+    const cleanPhone = normalizePhone(phone);
+
+    const res = await fetch("/api/quote", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to,
+        name,
+        phone: cleanPhone,
+        peopleCount,
+        rideTimeType,
+        rideTime,
+        saveOrder: true,
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || data?.error) {
+      setError(data?.error || "Nie udało się zapisać zamówienia.");
+      setStatusText("");
       return;
     }
 
     const pickupTime =
       rideTimeType === "now" ? "Jak najszybciej" : rideTime.trim();
 
-    const cleanPhone = normalizePhone(phone);
+    const verifyUrl = `${window.location.origin}/verify?token=${encodeURIComponent(
+      data.token
+    )}`;
+
+    const finalQuoteCode = data.quoteCode || quoteCode;
 
     const message = `Dzień dobry, proszę o zamówienie przejazdu.
 
 Kod wyceny:
-${quoteCode}
+${finalQuoteCode}
 
 Link weryfikacyjny:
-${quoteLink}
+${verifyUrl}
 
 Imię:
 ${name}
@@ -199,9 +234,16 @@ Kierowca weryfikuje trasę i cenę przez link systemowy.`;
 
     const url = `https://wa.me/48578000637?text=${encodeURIComponent(message)}`;
 
+    setQuoteCode(finalQuoteCode);
+    setQuoteLink(verifyUrl);
     setStatusText("Przekierowuję do WhatsApp...");
     window.open(url, "_blank");
+  } catch (error) {
+    console.error("Order save error:", error);
+    setError("Coś poszło nie tak.");
+    setStatusText("");
   }
+}
 
   return (
     <main style={styles.page}>

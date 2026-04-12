@@ -9,16 +9,19 @@ import {
 import { isQuoteExpired, verifySignedQuote } from "../../lib/quote";
 
 type VerifyPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     token?: string;
-  };
+  }>;
 };
 
 export default async function VerifyPage({
   searchParams,
 }: VerifyPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const token =
-    typeof searchParams?.token === "string" ? searchParams.token : "";
+    typeof resolvedSearchParams?.token === "string"
+      ? resolvedSearchParams.token
+      : "";
 
   if (!token) {
     return (
