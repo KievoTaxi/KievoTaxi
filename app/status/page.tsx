@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
@@ -20,7 +20,7 @@ type Order = {
   quote_code: string | null;
 };
 
-export default function StatusPage() {
+function StatusContent() {
   const searchParams = useSearchParams();
   const code = searchParams.get("code");
 
@@ -141,6 +141,14 @@ export default function StatusPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function StatusPage() {
+  return (
+    <Suspense fallback={<div style={styles.center}>Ładowanie...</div>}>
+      <StatusContent />
+    </Suspense>
   );
 }
 
