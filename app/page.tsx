@@ -32,65 +32,57 @@ export default function Home() {
   }
 
   async function handleUseMyLocation() {
-    setError("");
-    setStatusText("");
+  setError("");
+  setStatusText("");
 
-    if (!navigator.geolocation) {
-      setError("Ta przeglądarka nie obsługuje lokalizacji.");
+  if (!navigator.geolocation) {
+    setError("Ta przeglądarka nie obsługuje lokalizacji.");
+    return;
+  }
+
+  try {
+    setLocating(true);
+
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      });
+    });
+
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+
+    const res = await fetch("/api/quote", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        geocodeOnly: true,
+        lat,
+        lng,
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || data?.error) {
+      setError(data?.error || "Nie udało się pobrać Twojej lokalizacji.");
       return;
     }
 
-    try {
-      setLocating(true);
-
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          resolve, 
-          reject, 
-          {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
-      );
-      });
-
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-
-      const res = await fetch("/api/quote", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-  from,
-  to,
-  name,
-  phone: normalizePhone(phone),
-  peopleCount,
-  rideTimeType,
-  rideTime,
-  saveOrder: true,
-}),
-      });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok || data?.error) {
-        setError(data?.error || "Nie udało się pobrać Twojej lokalizacji.");
-        return;
-      }
-
-      setFrom(data?.address || `${lat}, ${lng}`);
-      setStatusText("Adres startowy został uzupełniony.");
-    } catch {
-      setError("Nie udało się pobrać Twojej lokalizacji.");
-    } finally {
-      setLocating(false);
-    }
+    setFrom(data?.address || `${lat}, ${lng}`);
+    setStatusText("Adres startowy został uzupełniony.");
+  } catch (error) {
+    console.error("Location error:", error);
+    setError("Nie udało się pobrać Twojej lokalizacji.");
+  } finally {
+    setLocating(false);
   }
-
+  }
+  
   async function handleQuote() {
     setError("");
     setDistance("");
