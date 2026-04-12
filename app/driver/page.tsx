@@ -1,19 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../lib/supabase";
 
 type Order = {
   id: string;
   created_at: string;
-  name: string | null;
-  phone: string | null;
-  from_address: string | null;
-  to_address: string | null;
-  people_count: number | null;
-  pickup_time: string | null;
-  status: string | null;
+  name: string;
+  phone: string;
+  from_address: string;
+  to_address: string;
+  people_count: number;
+  pickup_time: string;
+  status: string;
   eta: number | null;
+  quote_code: string | null;
+  price: number | null;
+  distance_km: number | null;
 };
 
 const ETA_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
@@ -48,10 +51,13 @@ export default function DriverPage() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
-      setOrders(data as Order[]);
+    if (error) {
+      console.error("Fetch orders error:", error);
+      setLoading(false);
+      return;
     }
 
+    setOrders((data as Order[]) || []);
     setLoading(false);
   }
 
@@ -65,191 +71,223 @@ export default function DriverPage() {
       const { error } = await supabase.from("orders").update(updates).eq("id", id);
 
       if (error) {
-        console.error("Update error:", error);
-        alert("Nie udało się zaktualizować zamówienia.");
+        console.error("Update order error:", error);
+        alert("Nie udało się zaktualizować kursu.");
       }
     } finally {
       setBusyId(null);
     }
   }
 
-  function getStatusLabel(status: string | null) {
-    switch (status) {
-      case "accepted":
-        return "zaakceptowane";
-      case "on_route":
-        return "w drodze";
-      case "completed":
-        return "zakończone";
-      case "cancelled":
-        return "anulowane";
-      default:
-        return "oczekuje";
+  function formatTime(value: string) {
+    try {
+      return new Date(value).toLocaleString("pl-PL");
+    } catch {
+      return value;
     }
   }
 
-  function getStatusStyle(status: string | null): React.CSSProperties {
-    switch (status) {
-      case "accepted":
-        return styles.statusAccepted;
-      case "on_route":
-        return styles.statusOnRoute;
-      case "completed":
-        return styles.statusCompleted;
-      case "cancelled":
-        return styles.statusCancelled;
-      default:
-        return styles.statusPending;
-    }
+  function statusLabel(status: string) {
+    if (status === "accepted") return "Zaakceptowane";
+    if (status === "on_route") return "W drodze";
+    if (status === "completed") return "Zakończone";
+    if (status === "cancelled") return "Anulowane";
+    return "Nowe";
+  }
+
+  function statusStyle(status: string) {
+    if (status === "accepted") return styles.statusAccepted;
+    if (status === "on_route") return styles.statusOnRoute;
+    if (status === "completed") return styles.statusCompleted;
+    if (status === "cancelled") return styles.statusCancelled;
+    return styles.statusPending;
   }
 
   return (
     <main style={styles.page}>
-      <div style={styles.container}>
-        <div style={styles.headerRow}>
-          <div>
-            <div style={styles.kicker}>KIEVO • PANEL KIEROWCY</div>
-            <h1 style={styles.title}>Zamówienia na żywo</h1>
+      <div style={styles.overlay} />
+      <section style={styles.shell}>
+        <div style={styles.header}>
+          <div style={styles.badge}>KievoTaxi • panel kierowcy</div>
+          <h1 style={styles.title}>Zamówienia na żywo</h1>
+          <p style={styles.subtitle}>
+            Odbieraj kursy, ustawiaj ETA i aktualizuj status klienta.
+          </p>
+        </div>
+
+        {loading ? (
+          <div style={styles.infoCard}>Ładowanie kursów...</div>
+        ) : orders.length === 0 ? (
+          <div style={styles.infoCard}>Brak zamówień.</div>
+        ) : (
+          <div style={styles.ordersList}>
+            {orders.map((order) => {
+              const isBusy = busyId === order.id;
+
+              return (
+                <article key={order.id} style={styles.orderCard}>
+                  <div style={styles.orderTop}>
+                    <div>
+                      <div style={styles.orderName}>{order.name}</div>
+                      <a href={`tel:${order.phone}`} style={styles.phoneLink}>
+                        {order.phone}
+                      </a>
+                    </div>
+
+                    <div
+                      style={{
+                        ...styles.statusBadge,
+                        ...statusStyle(order.status),
+                      }}
+                    >
+                      {statusLabel(order.status)}
+                      {order.eta ? ` • ${order.eta} min` : ""}
+                    </div>
+                  </div>
+
+                  <div style={styles.routeBox}>
+                    <div style={styles.routeLabel}>Trasa</div>
+                    <div style={styles.routeText}>
+                      {order.from_address}
+                      <br />
+                      ↓
+                      <br />
+                      {order.to_address}
+                    </div>
+                  </div>
+
+                  <div style={styles.metaGrid}>
+                    <div style={styles.metaItem}>
+                      <span style={styles.metaLabel}>Cena</span>
+                      <strong>{order.price ? `${order.price} zł` : "-"}</strong>
+                    </div>
+
+                    <div style={styles.metaItem}>
+                      <span style={styles.metaLabel}>Dystans</span>
+                      <strong>
+                        {order.distance_km ? `${order.distance_km} km` : "-"}
+                      </strong>
+                    </div>
+
+                    <div style={styles.metaItem}>
+                      <span style={styles.metaLabel}>Kod</span>
+                      <strong>{order.quote_code || "-"}</strong>
+                    </div>
+
+                    <div style={styles.metaItem}>
+                      <span style={styles.metaLabel}>Osoby</span>
+                      <strong>{order.people_count}</strong>
+                    </div>
+
+                    <div style={styles.metaItem}>
+                      <span style={styles.metaLabel}>Odbiór</span>
+                      <strong>{order.pickup_time}</strong>
+                    </div>
+
+                    <div style={styles.metaItem}>
+                      <span style={styles.metaLabel}>Dodano</span>
+                      <strong>{formatTime(order.created_at)}</strong>
+                    </div>
+                  </div>
+
+                  <div style={styles.actionGrid}>
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() =>
+                        updateOrder(order.id, {
+                          status: "accepted",
+                          eta: order.eta ?? 5,
+                        })
+                      }
+                      style={{
+                        ...styles.primaryButton,
+                        opacity: isBusy ? 0.6 : 1,
+                      }}
+                    >
+                      Akceptuj
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() =>
+                        updateOrder(order.id, {
+                          status: "on_route",
+                        })
+                      }
+                      style={{
+                        ...styles.secondaryButton,
+                        opacity: isBusy ? 0.6 : 1,
+                      }}
+                    >
+                      Jadę
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() =>
+                        updateOrder(order.id, {
+                          status: "completed",
+                        })
+                      }
+                      style={{
+                        ...styles.secondaryButton,
+                        opacity: isBusy ? 0.6 : 1,
+                      }}
+                    >
+                      Zakończ
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() =>
+                        updateOrder(order.id, {
+                          status: "cancelled",
+                        })
+                      }
+                      style={{
+                        ...styles.cancelButton,
+                        opacity: isBusy ? 0.6 : 1,
+                      }}
+                    >
+                      Odrzuć
+                    </button>
+                  </div>
+
+                  <div style={styles.etaSection}>
+                    <div style={styles.etaTitle}>Ustaw ETA</div>
+                    <div style={styles.etaGrid}>
+                      {ETA_OPTIONS.map((minutes) => (
+                        <button
+                          key={minutes}
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() =>
+                            updateOrder(order.id, {
+                              status: "accepted",
+                              eta: minutes,
+                            })
+                          }
+                          style={{
+                            ...styles.etaButton,
+                            ...(order.eta === minutes ? styles.etaButtonActive : {}),
+                            opacity: isBusy ? 0.6 : 1,
+                          }}
+                        >
+                          {minutes} min
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
-        </div>
-
-        {loading && <div style={styles.infoBox}>Ładowanie zamówień...</div>}
-
-        {!loading && orders.length === 0 && (
-          <div style={styles.infoBox}>Brak aktywnych zamówień.</div>
         )}
-
-        <div style={styles.list}>
-          {orders.map((order) => {
-            const isBusy = busyId === order.id;
-
-            return (
-              <section key={order.id} style={styles.card}>
-                <div style={styles.cardTop}>
-                  <div>
-                    <div style={styles.customerName}>{order.name || "Klient"}</div>
-                    <div style={styles.customerPhone}>{order.phone || "Brak numeru"}</div>
-                  </div>
-
-                  <div
-                    style={{
-                      ...styles.statusBadge,
-                      ...getStatusStyle(order.status),
-                    }}
-                  >
-                    {getStatusLabel(order.status)}
-                    {order.eta ? ` • ${order.eta} min` : ""}
-                  </div>
-                </div>
-
-                <div style={styles.routeCard}>
-                  <div style={styles.routeLine}>
-                    <span style={styles.routeLabel}>Start</span>
-                    <span>{order.from_address || "-"}</span>
-                  </div>
-
-                  <div style={styles.routeDivider}>↓</div>
-
-                  <div style={styles.routeLine}>
-                    <span style={styles.routeLabel}>Cel</span>
-                    <span>{order.to_address || "-"}</span>
-                  </div>
-                </div>
-
-                <div style={styles.metaGrid}>
-                  <div style={styles.metaItem}>
-                    <span style={styles.metaLabel}>Liczba osób</span>
-                    <strong>{order.people_count ?? "-"}</strong>
-                  </div>
-
-                  <div style={styles.metaItem}>
-                    <span style={styles.metaLabel}>Czas odbioru</span>
-                    <strong>{order.pickup_time || "-"}</strong>
-                  </div>
-                </div>
-
-                <div style={styles.actionGrid}>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() =>
-                      updateOrder(order.id, { status: "accepted", eta: 5 })
-                    }
-                    style={{
-                      ...styles.primaryButton,
-                      opacity: isBusy ? 0.7 : 1,
-                    }}
-                  >
-                    Akceptuj
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => updateOrder(order.id, { status: "on_route" })}
-                    style={{
-                      ...styles.secondaryButton,
-                      opacity: isBusy ? 0.7 : 1,
-                    }}
-                  >
-                    Jadę
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => updateOrder(order.id, { status: "completed" })}
-                    style={{
-                      ...styles.secondaryButton,
-                      opacity: isBusy ? 0.7 : 1,
-                    }}
-                  >
-                    Zakończ
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => updateOrder(order.id, { status: "cancelled" })}
-                    style={{
-                      ...styles.cancelButton,
-                      opacity: isBusy ? 0.7 : 1,
-                    }}
-                  >
-                    Odrzuć
-                  </button>
-                </div>
-
-                <div style={styles.etaSection}>
-                  <div style={styles.etaTitle}>Ustaw czas dojazdu do klienta</div>
-
-                  <div style={styles.etaGrid}>
-                    {ETA_OPTIONS.map((minutes) => (
-                      <button
-                        key={minutes}
-                        type="button"
-                        disabled={isBusy}
-                        onClick={() =>
-                          updateOrder(order.id, {
-                            status: "accepted",
-                            eta: minutes,
-                          })
-                        }
-                        style={{
-                          ...styles.etaButton,
-                          opacity: isBusy ? 0.7 : 1,
-                        }}
-                      >
-                        {minutes} min
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      </div>
+      </section>
     </main>
   );
 }
@@ -257,72 +295,92 @@ export default function DriverPage() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
-    background: "#050505",
-    color: "#ffffff",
-    padding: "24px 16px 40px",
+    background:
+      "radial-gradient(circle at top, rgba(124,255,91,0.08), transparent 35%), #060606",
+    position: "relative",
+    color: "#fff",
+  },
+  overlay: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.65) 100%)",
+    pointerEvents: "none",
+  },
+  shell: {
+    position: "relative",
+    zIndex: 1,
+    maxWidth: "1100px",
+    margin: "0 auto",
+    padding: "28px 16px 40px",
     boxSizing: "border-box",
   },
-  container: {
-    maxWidth: "980px",
-    margin: "0 auto",
+  header: {
+    marginBottom: "24px",
   },
-  headerRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "16px",
-    marginBottom: "22px",
-  },
-  kicker: {
-    fontSize: "12px",
-    letterSpacing: "0.12em",
-    color: "rgba(255,255,255,0.55)",
+  badge: {
+    display: "inline-block",
+    padding: "10px 16px",
+    borderRadius: "999px",
+    background: "rgba(124,255,91,0.10)",
+    border: "1px solid rgba(124,255,91,0.22)",
+    color: "#d9ffcc",
     fontWeight: 800,
-    marginBottom: "8px",
+    fontSize: "13px",
+    marginBottom: "18px",
   },
   title: {
     margin: 0,
-    fontSize: "34px",
-    lineHeight: 1.05,
+    fontSize: "40px",
+    lineHeight: 1,
     fontWeight: 900,
-    letterSpacing: "-0.03em",
+    letterSpacing: "-0.04em",
   },
-  infoBox: {
-    padding: "18px",
-    borderRadius: "18px",
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    marginBottom: "16px",
-    color: "rgba(255,255,255,0.86)",
+  subtitle: {
+    marginTop: "10px",
+    marginBottom: 0,
+    color: "rgba(255,255,255,0.75)",
+    fontSize: "15px",
+    lineHeight: 1.6,
   },
-  list: {
-    display: "grid",
-    gap: "16px",
-  },
-  card: {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.08)",
+  infoCard: {
+    padding: "22px",
     borderRadius: "22px",
-    padding: "18px",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.28)",
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    backdropFilter: "blur(10px)",
   },
-  cardTop: {
+  ordersList: {
+    display: "grid",
+    gap: "18px",
+  },
+  orderCard: {
+    background: "rgba(15,15,15,0.82)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "24px",
+    padding: "20px",
+    boxSizing: "border-box",
+    boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
+    backdropFilter: "blur(12px)",
+  },
+  orderTop: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: "12px",
     marginBottom: "16px",
     flexWrap: "wrap",
   },
-  customerName: {
-    fontSize: "22px",
+  orderName: {
+    fontSize: "24px",
     fontWeight: 900,
     lineHeight: 1.1,
+    marginBottom: "6px",
   },
-  customerPhone: {
-    marginTop: "6px",
-    color: "rgba(255,255,255,0.72)",
-    fontSize: "14px",
+  phoneLink: {
+    color: "#9dff73",
+    textDecoration: "none",
+    fontWeight: 700,
   },
   statusBadge: {
     padding: "10px 14px",
@@ -338,8 +396,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#ffffff",
   },
   statusAccepted: {
-    background: "rgba(146,255,104,0.14)",
-    border: "1px solid rgba(146,255,104,0.28)",
+    background: "rgba(124,255,91,0.14)",
+    border: "1px solid rgba(124,255,91,0.28)",
     color: "#d4ffc4",
   },
   statusOnRoute: {
@@ -357,38 +415,34 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,120,120,0.22)",
     color: "#ffb9b9",
   },
-  routeCard: {
+  routeBox: {
     padding: "16px",
-    borderRadius: "16px",
+    borderRadius: "18px",
     background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.05)",
-  },
-  routeLine: {
-    display: "grid",
-    gap: "6px",
-    lineHeight: 1.5,
+    marginBottom: "14px",
   },
   routeLabel: {
+    color: "rgba(255,255,255,0.55)",
     fontSize: "12px",
-    color: "rgba(255,255,255,0.58)",
     textTransform: "uppercase",
     letterSpacing: "0.08em",
+    marginBottom: "8px",
     fontWeight: 800,
   },
-  routeDivider: {
-    margin: "10px 0",
-    color: "rgba(255,255,255,0.45)",
-    fontWeight: 900,
+  routeText: {
+    fontSize: "16px",
+    lineHeight: 1.6,
+    fontWeight: 700,
   },
   metaGrid: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
     gap: "12px",
-    marginTop: "14px",
+    marginBottom: "16px",
   },
   metaItem: {
     padding: "14px",
-    borderRadius: "14px",
+    borderRadius: "16px",
     background: "rgba(255,255,255,0.04)",
     lineHeight: 1.45,
   },
@@ -405,7 +459,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "repeat(4, 1fr)",
     gap: "10px",
-    marginTop: "16px",
+    marginBottom: "16px",
   },
   primaryButton: {
     padding: "14px 12px",
@@ -438,7 +492,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
   },
   etaSection: {
-    marginTop: "16px",
+    marginTop: "4px",
   },
   etaTitle: {
     marginBottom: "10px",
@@ -460,5 +514,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     fontSize: "13px",
     cursor: "pointer",
+  },
+  etaButtonActive: {
+    border: "1px solid rgba(124,255,91,0.40)",
+    background: "rgba(124,255,91,0.14)",
+    color: "#d8ffcb",
   },
 };
