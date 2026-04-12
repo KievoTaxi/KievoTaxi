@@ -230,17 +230,20 @@ export async function POST(req: Request) {
         rideTimeType === "now" ? "Jak najszybciej" : rideTime;
 
       const { error: insertError } = await supabase.from("orders").insert([
-        {
-          name,
-          phone,
-          from_address: from,
-          to_address: to,
-          people_count: Number(peopleCount),
-          pickup_time: pickupTime,
-          status: "pending",
-          eta: null,
-        },
-      ]);
+  {
+    name,
+    phone,
+    from_address: from,
+    to_address: to,
+    people_count: Number(peopleCount),
+    pickup_time: pickupTime,
+    status: "pending",
+    eta: null,
+    quote_code: quoteCode,
+    price,
+    distance_km: distanceKm,
+  },
+]);
 
       if (insertError) {
         console.error("Order insert error:", insertError);

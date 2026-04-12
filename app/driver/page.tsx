@@ -80,13 +80,20 @@ export default function DriverPage() {
   }
 
   function formatTime(value: string) {
-    try {
-      return new Date(value).toLocaleString("pl-PL");
-    } catch {
-      return value;
-    }
+  try {
+    return new Date(value).toLocaleString("pl-PL", {
+      timeZone: "Europe/Warsaw",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  } catch {
+    return value;
   }
-
+}
   function statusLabel(status: string) {
     if (status === "accepted") return "Zaakceptowane";
     if (status === "on_route") return "W drodze";
